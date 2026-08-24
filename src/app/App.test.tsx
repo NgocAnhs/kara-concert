@@ -8,4 +8,10 @@ describe('App', () => {
 
     expect(screen.getByRole('heading', { name: /concert practice/i })).toBeInTheDocument();
   });
+
+  it('explains when the public catalog is not configured', () => {
+    render(<App />);
+
+    expect(screen.getByRole('alert')).toHaveTextContent(/supabase/i);
+  });
 });

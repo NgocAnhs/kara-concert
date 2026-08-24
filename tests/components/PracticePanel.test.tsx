@@ -1,0 +1,31 @@
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { describe, expect, it, vi } from 'vitest';
+import { PracticePanel } from '../../src/components/PracticePanel';
+
+const song = {
+  id: 'song', title: 'Practice song', youtubeUrl: 'https://youtu.be/abc123',
+  lines: [
+    { id: 'a', korean: '첫 줄', displayOrder: 0, startSeconds: 2, endSeconds: 4 },
+    { id: 'b', korean: '둘째 줄', displayOrder: 1, startSeconds: 4, endSeconds: 6 },
+    { id: 'c', korean: '셋째 줄', displayOrder: 2, startSeconds: 6, endSeconds: 8 },
+  ],
+};
+
+describe('PracticePanel', () => {
+  it('creates a range from adjacent lyric selections', async () => {
+    const user = userEvent.setup();
+    render(<PracticePanel song={song} onBack={vi.fn()} />);
+    await user.click(screen.getByRole('button', { name: /첫 줄/i }));
+    await user.click(screen.getByRole('button', { name: /둘째 줄/i }));
+    expect(screen.getByText(/selected: 0:02.*0:06/i)).toBeInTheDocument();
+  });
+
+  it('rejects a non-adjacent selection', async () => {
+    const user = userEvent.setup();
+    render(<PracticePanel song={song} onBack={vi.fn()} />);
+    await user.click(screen.getByRole('button', { name: /첫 줄/i }));
+    await user.click(screen.getByRole('button', { name: /셋째 줄/i }));
+    expect(screen.getByRole('alert')).toHaveTextContent(/adjacent/i);
+  });
+});
