@@ -12,12 +12,40 @@ npm run dev
 
 Set `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` in `.env.local`. These are public browser values. Never add a Supabase service-role key to this project.
 
-## Set up the catalog
+## Create the Supabase project
 
-1. Create a Supabase project.
-2. Run `supabase/migrations/001_create_catalog.sql` in the Supabase SQL Editor.
-3. In Supabase Dashboard, add a song and its ordered `lyric_lines`.
-4. Keep unfinished songs as `draft`; set `status` to `published` when visitors should see them.
+1. Go to Supabase and create a new project.
+2. Wait for the database to finish provisioning.
+3. Open `Project Settings` -> `Data API`.
+4. Copy these two public browser values:
+   - `Project URL`
+   - `anon public` key
+5. Put them into `.env.local`:
+
+```bash
+VITE_SUPABASE_URL=your-project-url
+VITE_SUPABASE_ANON_KEY=your-anon-key
+```
+
+## Create the catalog schema
+
+1. Open the Supabase SQL Editor.
+2. Run `supabase/migrations/001_create_catalog.sql`.
+3. Confirm that the `songs` and `lyric_lines` tables were created.
+
+## Add one starter song
+
+1. In the same SQL Editor, run `supabase/seeds/001_sample_song.sql`.
+2. This inserts one published sample song plus four timed lyric lines.
+3. Start the app with `npm run dev` and open it in the browser.
+4. You should see `Into the New World` in the public library immediately.
+
+## Add your real concert songs
+
+1. Open `Table Editor` in Supabase.
+2. Add rows to `songs` and `lyric_lines`.
+3. Keep unfinished songs as `draft`.
+4. Switch `status` to `published` only when the song is ready to appear in the public app.
 
 The public site has no create, edit, import, export, or sign-in function. Row Level Security allows anonymous visitors to read only published songs and their lyrics; all changes are made through the Supabase Dashboard.
 
