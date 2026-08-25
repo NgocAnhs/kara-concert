@@ -15,6 +15,7 @@ export function PracticePanel({ song, onBack }: PracticePanelProps) {
   const [error, setError] = useState<string | null>(null);
   const [looping, setLooping] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
+  const [playbackRate, setPlaybackRate] = useState(1);
 
   const toggleLine = (lineId: string) => {
     const nextIds = selectedIds.includes(lineId) ? selectedIds.filter((id) => id !== lineId) : [...selectedIds, lineId];
@@ -32,8 +33,29 @@ export function PracticePanel({ song, onBack }: PracticePanelProps) {
     <main>
       <button type="button" onClick={onBack}>Back to library</button>
       <h1>{song.title}</h1>
-      <YouTubePracticePlayer youtubeUrl={song.youtubeUrl} range={range} looping={looping} onCurrentTime={setCurrentTime} />
+      <YouTubePracticePlayer
+        youtubeUrl={song.youtubeUrl}
+        range={range}
+        looping={looping}
+        playbackRate={playbackRate}
+        onCurrentTime={setCurrentTime}
+      />
       <p>{range ? `Selected: ${formatSeconds(range.startSeconds)} – ${formatSeconds(range.endSeconds)}` : 'Select a lyric line to practice.'}</p>
+      <fieldset>
+        <legend>Playback speed</legend>
+        {[0.75, 1, 1.25].map((speed) => (
+          <label key={speed}>
+            <input
+              type="radio"
+              name="playback-speed"
+              value={speed}
+              checked={playbackRate === speed}
+              onChange={() => setPlaybackRate(speed)}
+            />
+            {speed.toFixed(2).replace(/\.00$/, '')}x
+          </label>
+        ))}
+      </fieldset>
       {error && <p role="alert">{error}</p>}
       <div aria-label="Lyrics">
         {song.lines.map((line) => (

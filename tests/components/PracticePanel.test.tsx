@@ -3,6 +3,15 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { PracticePanel } from '../../src/components/PracticePanel';
 
+const playerProps = vi.hoisted(() => ({ last: null as null | Record<string, unknown> }));
+
+vi.mock('../../src/components/YouTubePracticePlayer', () => ({
+  YouTubePracticePlayer: (props: Record<string, unknown>) => {
+    playerProps.last = props;
+    return <div data-testid="youtube-player" />;
+  },
+}));
+
 const song = {
   id: 'song', title: 'Practice song', youtubeUrl: 'https://youtu.be/abc123',
   lines: [
@@ -27,5 +36,16 @@ describe('PracticePanel', () => {
     await user.click(screen.getByRole('button', { name: /첫 줄/i }));
     await user.click(screen.getByRole('button', { name: /셋째 줄/i }));
     expect(screen.getByRole('alert')).toHaveTextContent(/adjacent/i);
+  });
+
+  it('lets the visitor choose a playback speed', async () => {
+    const user = userEvent.setup();
+    render(<PracticePanel song={song} onBack={vi.fn()} />);
+
+    const speedOption = screen.getByRole('radio', { name: '0.75x' });
+    await user.click(speedOption);
+
+    expect(speedOption).toBeChecked();
+    expect(playerProps.last).toMatchObject({ playbackRate: 0.75 });
   });
 });

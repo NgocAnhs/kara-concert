@@ -6,6 +6,7 @@ type YouTubePracticePlayerProps = {
   youtubeUrl: string;
   range: PracticeRange | null;
   looping: boolean;
+  playbackRate: number;
   onCurrentTime(seconds: number): void;
 };
 
@@ -18,7 +19,7 @@ function getVideoId(url: string): string | null {
   return null;
 }
 
-export function YouTubePracticePlayer({ youtubeUrl, range, looping, onCurrentTime }: YouTubePracticePlayerProps) {
+export function YouTubePracticePlayer({ youtubeUrl, range, looping, playbackRate, onCurrentTime }: YouTubePracticePlayerProps) {
   const playerRef = useRef<YouTubePlayer | null>(null);
   const [error, setError] = useState<string | null>(null);
   const videoId = getVideoId(youtubeUrl);
@@ -45,6 +46,11 @@ export function YouTubePracticePlayer({ youtubeUrl, range, looping, onCurrentTim
     return () => window.clearInterval(timer);
   }, [looping, onCurrentTime, range]);
 
+  useEffect(() => {
+    if (!playerRef.current) return;
+    void playerRef.current.setPlaybackRate(playbackRate);
+  }, [playbackRate]);
+
   if (!videoId) return <p role="alert">This YouTube link cannot be embedded.</p>;
 
   return <>
@@ -52,7 +58,10 @@ export function YouTubePracticePlayer({ youtubeUrl, range, looping, onCurrentTim
     <YouTube
       videoId={videoId}
       opts={{ playerVars: { rel: 0 } }}
-      onReady={(event) => { playerRef.current = event.target; }}
+      onReady={(event) => {
+        playerRef.current = event.target;
+        void event.target.setPlaybackRate(playbackRate);
+      }}
       onError={() => setError('This YouTube video cannot be embedded.')}
     />
   </>;
