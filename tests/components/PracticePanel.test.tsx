@@ -22,6 +22,13 @@ const song = {
 };
 
 describe('PracticePanel', () => {
+  it('shows dedicated player and lyric sections', () => {
+    render(<PracticePanel song={song} onBack={vi.fn()} />);
+
+    expect(screen.getByRole('region', { name: /player/i })).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: /lyrics/i })).toBeInTheDocument();
+  });
+
   it('creates a range from adjacent lyric selections', async () => {
     const user = userEvent.setup();
     render(<PracticePanel song={song} onBack={vi.fn()} />);

@@ -20,11 +20,17 @@ export function App() {
   if (selectedSong) return <PracticePanel song={selectedSong} onBack={() => setSelectedSong(null)} />;
 
   return (
-    <main>
-      <h1>Concert Practice</h1>
-      {!supabase && <p role="alert">Supabase is not configured. Add the public VITE_SUPABASE values to run the catalog.</p>}
-      {supabase && error && <p role="alert">{error}</p>}
-      {supabase && songs === null && !error && <p>Loading songs…</p>}
+    <main className="app-shell">
+      <section className="hero">
+        <p className="eyebrow">Concert practice</p>
+        <h1>Concert Practice</h1>
+        <p className="hero-copy">
+          Jump to any lyric line, slow the song down, and loop the exact part you want to rehearse.
+        </p>
+      </section>
+      {!supabase && <p role="alert" className="notice notice-warning">Supabase is not configured. Add the public VITE_SUPABASE values to run the catalog.</p>}
+      {supabase && error && <p role="alert" className="notice notice-warning">{error}</p>}
+      {supabase && songs === null && !error && <p className="notice">Loading songs…</p>}
       {supabase && songs && <SongLibrary songs={songs} onPractice={setSelectedSong} />}
     </main>
   );

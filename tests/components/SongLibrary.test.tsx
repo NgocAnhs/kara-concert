@@ -15,9 +15,12 @@ describe('SongLibrary', () => {
     const onPractice = vi.fn();
     render(<SongLibrary songs={songs} onPractice={onPractice} />);
 
+    expect(screen.getByText(/2 songs ready to practice/i)).toBeInTheDocument();
+
     await user.type(screen.getByRole('searchbox', { name: /search songs/i }), 'super');
     expect(screen.getByText('Supernova')).toBeInTheDocument();
     expect(screen.queryByText('Drama')).not.toBeInTheDocument();
+    expect(screen.getByText(/1 song ready to practice/i)).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: /practice supernova/i }));
     expect(onPractice).toHaveBeenCalledWith(songs[0]);
