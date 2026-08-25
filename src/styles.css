@@ -257,6 +257,7 @@ button {
   display: grid;
   gap: 1.25rem;
   grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+  align-items: start;
 }
 
 .panel {
@@ -266,6 +267,11 @@ button {
 .panel-player,
 .panel-lyrics {
   min-width: 0;
+}
+
+.panel-player {
+  position: sticky;
+  top: 1rem;
 }
 
 .video-frame {
@@ -344,6 +350,12 @@ button {
   display: grid;
   gap: 0.8rem;
   margin-top: 1rem;
+  max-height: calc(100vh - 13rem);
+  max-height: calc(100dvh - 13rem);
+  overflow-y: auto;
+  padding-right: 0.25rem;
+  scroll-behavior: smooth;
+  scrollbar-gutter: stable;
 }
 
 .lyric-card {
@@ -404,6 +416,16 @@ button {
     grid-template-columns: 1fr;
   }
 
+  .panel-player {
+    position: static;
+  }
+
+  .lyric-list {
+    max-height: none;
+    overflow-y: visible;
+    padding-right: 0;
+  }
+
   .library-header,
   .practice-header,
   .panel-heading {
@@ -423,6 +445,26 @@ button {
     padding: 1rem 0.9rem 3rem;
   }
 
+  .practice-shell {
+    height: 100dvh;
+    overflow: hidden;
+    padding-bottom: 1rem;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .practice-header {
+    flex: 0 0 auto;
+    margin-bottom: 0.75rem;
+  }
+
+  .practice-layout {
+    flex: 1;
+    min-height: 0;
+    grid-template-rows: auto minmax(0, 1fr);
+    gap: 0.75rem;
+  }
+
   .hero,
   .library-shell,
   .panel {
@@ -434,6 +476,19 @@ button {
   .panel,
   .song-card {
     padding: 1.1rem;
+  }
+
+  .panel-lyrics {
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .lyric-list {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
   }
 
   .action-row {

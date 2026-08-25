@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { Song } from '../domain/song';
 import { createPracticeRange, type PracticeRange } from '../domain/practiceRange';
 import { YouTubePracticePlayer } from './YouTubePracticePlayer';
@@ -16,7 +16,18 @@ export function PracticePanel({ song, onBack }: PracticePanelProps) {
   const [looping, setLooping] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [playbackRate, setPlaybackRate] = useState(1);
+  const lyricCardRefs = useRef(new Map<string, HTMLButtonElement>());
+  const lastActiveLineId = useRef<string | null>(null);
   const selectedLineCount = selectedIds.length;
+  const activeLineId = song.lines.find(
+    (line) => currentTime >= line.startSeconds && currentTime < line.endSeconds,
+  )?.id ?? null;
+
+  useEffect(() => {
+    if (!activeLineId || activeLineId === lastActiveLineId.current) return;
+    lastActiveLineId.current = activeLineId;
+    lyricCardRefs.current.get(activeLineId)?.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
+  }, [activeLineId]);
 
   const toggleLine = (lineId: string) => {
     const nextIds = selectedIds.includes(lineId) ? selectedIds.filter((id) => id !== lineId) : [...selectedIds, lineId];
@@ -107,7 +118,7 @@ export function PracticePanel({ song, onBack }: PracticePanelProps) {
           <div className="lyric-list">
             {song.lines.map((line) => {
               const isSelected = selectedIds.includes(line.id);
-              const isActive = currentTime >= line.startSeconds && currentTime < line.endSeconds;
+              const isActive = line.id === activeLineId;
 
               return (
                 <button
@@ -116,6 +127,10 @@ export function PracticePanel({ song, onBack }: PracticePanelProps) {
                   className={isSelected ? 'lyric-card is-selected' : isActive ? 'lyric-card is-active' : 'lyric-card'}
                   aria-pressed={isSelected}
                   onClick={() => toggleLine(line.id)}
+                  ref={(element) => {
+                    if (element) lyricCardRefs.current.set(line.id, element);
+                    else lyricCardRefs.current.delete(line.id);
+                  }}
                 >
                   <div className="lyric-card-topline">
                     <span className="lyric-time">{formatSeconds(line.startSeconds)}</span>

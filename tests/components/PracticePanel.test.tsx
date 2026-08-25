@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { PracticePanel } from '../../src/components/PracticePanel';
@@ -61,5 +61,19 @@ describe('PracticePanel', () => {
 
     expect(speedOption).toBeChecked();
     expect(playerProps.last).toMatchObject({ playbackRate: 0.75 });
+  });
+
+  it('scrolls the active lyric into view as playback advances', () => {
+    const scrollIntoView = vi.fn();
+    Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', { configurable: true, value: scrollIntoView });
+
+    render(<PracticePanel song={song} onBack={vi.fn()} />);
+
+    act(() => {
+      (playerProps.last?.onCurrentTime as (seconds: number) => void)(5);
+    });
+
+    expect(scrollIntoView).toHaveBeenCalledWith({ behavior: 'smooth', block: 'center', inline: 'nearest' });
+    expect(scrollIntoView.mock.instances[0]).toBe(screen.getByRole('button', { name: /둘째 줄/i }));
   });
 });

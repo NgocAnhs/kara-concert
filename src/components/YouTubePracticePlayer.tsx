@@ -22,29 +22,35 @@ function getVideoId(url: string): string | null {
 export function YouTubePracticePlayer({ youtubeUrl, range, looping, playbackRate, onCurrentTime }: YouTubePracticePlayerProps) {
   const playerRef = useRef<YouTubePlayer | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isReady, setIsReady] = useState(false);
   const videoId = getVideoId(youtubeUrl);
 
   useEffect(() => {
-    if (playerRef.current && range) {
+    if (isReady && playerRef.current && range) {
       void playerRef.current.seekTo(range.startSeconds, true);
       void playerRef.current.playVideo();
     }
-  }, [range]);
+  }, [isReady, range]);
 
   useEffect(() => {
-    if (!looping || !range || !playerRef.current) return;
+    if (!isReady || !playerRef.current) return;
     const timer = window.setInterval(async () => {
       const player = playerRef.current;
       if (!player) return;
       const currentTime = await player.getCurrentTime();
       onCurrentTime(currentTime);
-      if (shouldLoop(currentTime, range)) {
-        await player.seekTo(range.startSeconds, true);
-        await player.playVideo();
+      if (range && shouldLoop(currentTime, range)) {
+        if (looping) {
+          await player.seekTo(range.startSeconds, true);
+          await player.playVideo();
+        } else {
+          await player.pauseVideo();
+          window.clearInterval(timer);
+        }
       }
     }, 100);
     return () => window.clearInterval(timer);
-  }, [looping, onCurrentTime, range]);
+  }, [isReady, looping, onCurrentTime, range]);
 
   useEffect(() => {
     if (!playerRef.current) return;
@@ -61,6 +67,7 @@ export function YouTubePracticePlayer({ youtubeUrl, range, looping, playbackRate
       onReady={(event) => {
         playerRef.current = event.target;
         void event.target.setPlaybackRate(playbackRate);
+        setIsReady(true);
       }}
       onError={() => setError('This YouTube video cannot be embedded.')}
     />
