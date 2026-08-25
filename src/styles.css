@@ -461,7 +461,7 @@ button {
   .practice-layout {
     flex: 1;
     min-height: 0;
-    grid-template-rows: auto minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
     gap: 0.75rem;
   }
 
@@ -476,6 +476,52 @@ button {
   .panel,
   .song-card {
     padding: 1.1rem;
+  }
+
+  .panel-player {
+    min-height: 0;
+    overflow-y: auto;
+  }
+
+  .panel-player .panel-heading {
+    display: none;
+  }
+
+  .panel-player .video-frame {
+    margin-top: 0;
+  }
+
+  .panel-player .video-frame iframe {
+    aspect-ratio: 16 / 7;
+  }
+
+  .panel-player .control-cluster {
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+  }
+
+  .panel-player .speed-control legend {
+    display: none;
+  }
+
+  .panel-player .speed-control .segmented-control {
+    gap: 0.4rem;
+  }
+
+  .panel-player .segment {
+    min-width: 4rem;
+    padding: 0.55rem 0.7rem;
+  }
+
+  .panel-player .action-row {
+    flex-direction: row;
+    gap: 0.5rem;
+  }
+
+  .panel-player .action-row > * {
+    flex: 1;
+    min-width: 0;
+    padding: 0.65rem 0.5rem;
   }
 
   .panel-lyrics {
