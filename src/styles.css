@@ -489,10 +489,16 @@ button {
 
   .panel-player .video-frame {
     margin-top: 0;
+    height: 9.5rem;
+  }
+
+  .panel-player .video-frame > div,
+  .panel-player .video-frame iframe {
+    height: 100%;
   }
 
   .panel-player .video-frame iframe {
-    aspect-ratio: 16 / 7;
+    aspect-ratio: auto;
   }
 
   .panel-player .control-cluster {
