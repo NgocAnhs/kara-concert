@@ -122,7 +122,7 @@ export function PracticePanel({ song, onBack }: PracticePanelProps) {
                     <span className="lyric-index">{String(line.displayOrder + 1).padStart(2, '0')}</span>
                   </div>
                   <span className={isActive ? 'active-line lyric-korean' : 'lyric-korean'}>{line.korean}</span>
-                  {line.vietHan && <small className="lyric-viet-han">Đọc kiểu Việt: {line.vietHan}</small>}
+                  {line.vietHan && <small className="lyric-viet-han">{line.vietHan}</small>}
                   {line.romanization && <small className="lyric-romanization">{line.romanization}</small>}
                   {line.meaning && <small className="lyric-meaning">{line.meaning}</small>}
                 </button>

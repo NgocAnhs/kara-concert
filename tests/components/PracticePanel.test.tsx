@@ -32,7 +32,8 @@ describe('PracticePanel', () => {
   it('shows Vietnamese-friendly pronunciation beneath the Korean lyric', () => {
     render(<PracticePanel song={song} onBack={vi.fn()} />);
 
-    expect(screen.getByText(/đọc kiểu việt: chọt chul/i)).toBeInTheDocument();
+    expect(screen.getByText('Chọt chul')).toBeInTheDocument();
+    expect(screen.queryByText(/đọc kiểu việt:/i)).not.toBeInTheDocument();
   });
 
   it('creates a range from adjacent lyric selections', async () => {
