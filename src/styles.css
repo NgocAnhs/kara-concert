@@ -461,7 +461,8 @@ button {
   .practice-layout {
     flex: 1;
     min-height: 0;
-    grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
+    display: flex;
+    flex-direction: column;
     gap: 0.75rem;
   }
 
@@ -479,8 +480,9 @@ button {
   }
 
   .panel-player {
+    flex: 0 0 clamp(14rem, 42%, 18rem);
     min-height: 0;
-    overflow-y: auto;
+    overflow: hidden;
   }
 
   .panel-player .panel-heading {
@@ -489,7 +491,7 @@ button {
 
   .panel-player .video-frame {
     margin-top: 0;
-    height: 9.5rem;
+    height: 7.5rem;
   }
 
   .panel-player .video-frame > div,
@@ -502,8 +504,8 @@ button {
   }
 
   .panel-player .control-cluster {
-    gap: 0.5rem;
-    margin-top: 0.5rem;
+    gap: 0.35rem;
+    margin-top: 0.35rem;
   }
 
   .panel-player .speed-control legend {
@@ -511,26 +513,30 @@ button {
   }
 
   .panel-player .speed-control .segmented-control {
-    gap: 0.4rem;
+    gap: 0.3rem;
   }
 
   .panel-player .segment {
-    min-width: 4rem;
-    padding: 0.55rem 0.7rem;
+    min-width: 3.25rem;
+    padding: 0.4rem 0.5rem;
+    font-size: 0.82rem;
   }
 
   .panel-player .action-row {
     flex-direction: row;
-    gap: 0.5rem;
+    gap: 0.35rem;
   }
 
   .panel-player .action-row > * {
     flex: 1;
     min-width: 0;
-    padding: 0.65rem 0.5rem;
+    min-height: 2.25rem;
+    padding: 0.4rem;
+    font-size: 0.78rem;
   }
 
   .panel-lyrics {
+    flex: 1;
     min-height: 0;
     display: flex;
     flex-direction: column;
