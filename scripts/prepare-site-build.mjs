@@ -7,7 +7,7 @@ await writeFile(
   'dist/server/index.js',
   `import { createStaticHandler } from './static-site-handler.js';
 
-export default createStaticHandler(new URL('../', import.meta.url));
+export default createStaticHandler();
 `,
 );
 
