@@ -4,6 +4,7 @@ const lyricLineSchema = z
   .object({
     id: z.string().min(1),
     korean: z.string().trim().min(1),
+    viet_han: z.string().nullable().optional().transform((value) => value ?? undefined),
     romanization: z.string().nullable().optional().transform((value) => value ?? undefined),
     meaning: z.string().nullable().optional().transform((value) => value ?? undefined),
     display_order: z.number().int().nonnegative(),
@@ -25,6 +26,7 @@ const songRowSchema = z.object({
 export type LyricLine = {
   id: string;
   korean: string;
+  vietHan?: string;
   romanization?: string;
   meaning?: string;
   displayOrder: number;
@@ -48,6 +50,7 @@ export function parsePublishedSongs(value: unknown): Song[] {
       .map((line) => ({
         id: line.id,
         korean: line.korean,
+        vietHan: line.viet_han,
         romanization: line.romanization,
         meaning: line.meaning,
         displayOrder: line.display_order,

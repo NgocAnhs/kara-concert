@@ -15,7 +15,7 @@ export type PublicCatalogClient = {
 export async function listPublishedSongs(client: PublicCatalogClient): Promise<Song[]> {
   const { data, error } = await client
     .from('songs')
-    .select('id,title,youtube_url,lyric_lines(id,korean,romanization,meaning,display_order,start_seconds,end_seconds)')
+    .select('id,title,youtube_url,lyric_lines(id,korean,viet_han,romanization,meaning,display_order,start_seconds,end_seconds)')
     .order('title')
     .order('display_order', { foreignTable: 'lyric_lines' });
 

@@ -18,6 +18,28 @@ describe('parsePublishedSongs', () => {
     expect(songs[0].lines.map((line) => line.korean)).toEqual(['하나', '둘']);
   });
 
+  it('keeps Vietnamese-friendly Korean pronunciation from the catalog', () => {
+    const songs = parsePublishedSongs([
+      {
+        id: 'song-1',
+        title: 'LOSER',
+        youtube_url: 'https://youtu.be/abc123',
+        lyric_lines: [
+          {
+            id: 'line-1',
+            korean: 'LOSER',
+            viet_han: 'Lu zờ',
+            display_order: 0,
+            start_seconds: 0,
+            end_seconds: 1,
+          },
+        ],
+      },
+    ]);
+
+    expect(songs[0].lines[0].vietHan).toBe('Lu zờ');
+  });
+
   it('rejects a lyric line ending before it starts', () => {
     expect(() =>
       parsePublishedSongs([

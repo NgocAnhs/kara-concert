@@ -15,7 +15,7 @@ vi.mock('../../src/components/YouTubePracticePlayer', () => ({
 const song = {
   id: 'song', title: 'Practice song', youtubeUrl: 'https://youtu.be/abc123',
   lines: [
-    { id: 'a', korean: '첫 줄', displayOrder: 0, startSeconds: 2, endSeconds: 4 },
+    { id: 'a', korean: '첫 줄', vietHan: 'Chọt chul', displayOrder: 0, startSeconds: 2, endSeconds: 4 },
     { id: 'b', korean: '둘째 줄', displayOrder: 1, startSeconds: 4, endSeconds: 6 },
     { id: 'c', korean: '셋째 줄', displayOrder: 2, startSeconds: 6, endSeconds: 8 },
   ],
@@ -27,6 +27,12 @@ describe('PracticePanel', () => {
 
     expect(screen.getByRole('region', { name: /player/i })).toBeInTheDocument();
     expect(screen.getByRole('region', { name: /lyrics/i })).toBeInTheDocument();
+  });
+
+  it('shows Vietnamese-friendly pronunciation beneath the Korean lyric', () => {
+    render(<PracticePanel song={song} onBack={vi.fn()} />);
+
+    expect(screen.getByText(/đọc kiểu việt: chọt chul/i)).toBeInTheDocument();
   });
 
   it('creates a range from adjacent lyric selections', async () => {

@@ -385,6 +385,12 @@ button {
   color: var(--text-muted);
 }
 
+.lyric-viet-han {
+  color: var(--accent-strong);
+  font-size: 0.96rem;
+  font-weight: 650;
+}
+
 .lyric-meaning {
   color: var(--text-soft);
 }
