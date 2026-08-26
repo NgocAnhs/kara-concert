@@ -1,9 +1,10 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { BrowserRouter, Link, Route, Routes, useNavigate, useParams } from 'react-router';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { BrowserRouter, Link, Navigate, Route, Routes, useLocation, useNavigate, useParams } from 'react-router';
 import { Brand } from '../components/Brand';
 import { PracticePanel } from '../components/PracticePanel';
 import { SongLibrary } from '../components/SongLibrary';
 import type { Song } from '../domain/song';
+import { createSongRoutes } from '../domain/songRoutes';
 import { supabase } from '../lib/supabase';
 import { listPublishedSongs } from '../repositories/songRepository';
 
@@ -31,7 +32,7 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/" element={<LibraryPage songs={songs} error={error} />} />
-      <Route path="/practice/:songId" element={<PracticePage songs={songs} error={error} />} />
+      <Route path="/practice/:songKey" element={<PracticePage songs={songs} error={error} />} />
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
   );
@@ -68,19 +69,27 @@ function NotFoundPage({ songMissing = false }: { songMissing?: boolean }) {
 }
 
 function PracticePage({ songs, error }: CatalogState) {
-  const { songId } = useParams();
+  const { songKey } = useParams();
+  const location = useLocation();
   const navigate = useNavigate();
+  const routes = useMemo(() => createSongRoutes(songs ?? []), [songs]);
   if (!supabase || error || songs === null) {
     return <RouteMessage title="Luyện hát"><CatalogNotice songs={songs} error={error} /></RouteMessage>;
   }
-  const song = songs.find((entry) => entry.id === songId);
-  if (!song) return <NotFoundPage songMissing />;
+  const route = routes.find((entry) => entry.song.id === songKey)
+    ?? routes.find((entry) => entry.slug === songKey);
+  if (!route) return <NotFoundPage songMissing />;
+  if (songKey !== route.slug) {
+    return <Navigate replace to={{ pathname: route.pathname, search: location.search, hash: location.hash }} />;
+  }
+  const { song } = route;
   return <PracticePanel key={song.id} song={song} onBack={() => navigate('/')} />;
 }
 
 function LibraryPage({ songs, error }: CatalogState) {
   const headingRef = useRef<HTMLHeadingElement>(null);
   const navigate = useNavigate();
+  const routes = useMemo(() => createSongRoutes(songs ?? []), [songs]);
   useEffect(() => { headingRef.current?.focus(); }, []);
 
   return (
@@ -97,7 +106,10 @@ function LibraryPage({ songs, error }: CatalogState) {
         <span className="hero-sticker" aria-hidden="true">SING IT YOUR WAY</span>
       </section>
       <CatalogNotice songs={songs} error={error} />
-      {supabase && songs && <SongLibrary songs={songs} onPractice={(song) => navigate(`/practice/${encodeURIComponent(song.id)}`)} />}
+      {supabase && songs && <SongLibrary songs={songs} onPractice={(song) => {
+        const route = routes.find((entry) => entry.song.id === song.id);
+        if (route) navigate(route.pathname);
+      }} />}
       <footer className="site-footer"><span>Luyện một chút mỗi ngày. Tự tin hơn mỗi lần hát.</span><span>Made for your next concert.</span></footer>
     </main>
   );

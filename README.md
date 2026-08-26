@@ -20,10 +20,14 @@ The existing Sites project could not be resolved (`project_not_found`) during th
 ## Page routes
 
 - `/` — public song library.
-- `/practice/:songId` — practice a published song by ID; supports direct links and refresh.
+- `/practice/:slug` — practice a published song using its title, for example `/practice/bigbang-loser` or `/practice/into-the-new-world`; supports direct links and refresh.
 - Any other path displays a Vietnamese 404 page with a link back to the library. Missing/unpublished songs show a song-specific 404 after the catalog loads; loading, configuration, and network failures remain separate states.
 
 Navigation uses React Router and supports browser Back/Forward. Returning to the library restores heading focus. Practice selections and playback settings are local to the current visit, not saved in the URL.
+
+Slugs are lowercase, strip accent marks (including Vietnamese `đ` → `d`), and replace punctuation/spacing with hyphens. Korean and other non-Latin letters are preserved and URL-encoded. Colliding titles receive a `--<songId>` suffix; titles without letters/numbers use `song--<songId>`. Slugs cannot shadow legacy song IDs. Bare ambiguous slugs return 404 rather than selecting an arbitrary song.
+
+Existing `/practice/:songId` links redirect client-side to the current slug after the catalog loads, replacing the history entry and preserving the query string and hash. No database migration is needed. Because slugs are derived from the current published catalog, renaming a song or adding/removing a slug collision may change its friendly URL; old ID links remain supported, but historical title slugs are not stored.
 
 ## Run locally
 

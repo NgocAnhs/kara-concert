@@ -29,7 +29,7 @@ describe('App catalog navigation', () => {
     expect(screen.getByRole('status')).toHaveTextContent(/đang tải bài hát/i);
     await act(async () => resolveCatalog([song]));
     await user.click(screen.getByRole('button', { name: `Luyện hát ${song.title}` }));
-    expect(window.location.pathname).toBe('/practice/1');
+    expect(window.location.pathname).toBe('/practice/a-practice-song');
     expect(screen.getByRole('region', { name: 'Lời bài hát' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: song.title })).toHaveFocus();
     await user.click(screen.getByRole('button', { name: 'Về thư viện' }));
@@ -39,7 +39,7 @@ describe('App catalog navigation', () => {
   });
 
   it('opens a practice URL directly and restores it after remounting', async () => {
-    window.history.replaceState(null, '', '/practice/1');
+    window.history.replaceState(null, '', '/practice/a-practice-song');
     catalog.list.mockResolvedValue([song]);
     const firstVisit = render(<App />);
     expect(await screen.findByRole('heading', { name: song.title, level: 1 })).toHaveFocus();
@@ -59,7 +59,74 @@ describe('App catalog navigation', () => {
     await waitFor(() => expect(window.location.pathname).toBe('/'));
     act(() => window.history.forward());
     expect(await screen.findByRole('heading', { name: song.title, level: 1 })).toHaveFocus();
-    expect(window.location.pathname).toBe('/practice/1');
+    expect(window.location.pathname).toBe('/practice/a-practice-song');
+  });
+
+  it('replaces legacy ID URLs with the friendly URL without losing query/hash or trapping Back', async () => {
+    window.history.pushState(null, '', '/practice/1?source=share#lyrics');
+    catalog.list.mockResolvedValue([song]);
+    render(<App />);
+    expect(await screen.findByRole('heading', { name: song.title, level: 1 })).toHaveFocus();
+    await waitFor(() => expect(window.location.pathname).toBe('/practice/a-practice-song'));
+    expect(window.location.search).toBe('?source=share');
+    expect(window.location.hash).toBe('#lyrics');
+    act(() => window.history.back());
+    expect(await screen.findByRole('searchbox')).toBeInTheDocument();
+    expect(window.location.pathname).toBe('/');
+    act(() => window.history.forward());
+    expect(await screen.findByRole('heading', { name: song.title, level: 1 })).toHaveFocus();
+    expect(window.location.pathname).toBe('/practice/a-practice-song');
+  });
+
+  it.each([
+    ['BIGBANG – LOSER', '/practice/bigbang-loser'],
+    ['Into the New World', '/practice/into-the-new-world'],
+    ['  ĐỪNG   HỎI / EM?!  ', '/practice/dung-hoi-em'],
+    ['봄날', '/practice/%EB%B4%84%EB%82%A0'],
+    ['🎵 !!!', '/practice/song--1'],
+  ])('opens and reloads the friendly URL for %s', async (title, pathname) => {
+    catalog.list.mockResolvedValue([{ ...song, title }]);
+    const user = userEvent.setup();
+    const visit = render(<App />);
+    await user.click(await screen.findByRole('button', { name: /luyện hát/i }));
+    expect(window.location.pathname).toBe(pathname);
+    visit.unmount();
+    render(<App />);
+    expect(await screen.findByRole('heading', { name: title.trim().replace(/\s+/g, ' '), level: 1 })).toBeInTheDocument();
+  });
+
+  it('distinguishes colliding titles regardless of catalog order and refuses an ambiguous bare slug', async () => {
+    const first = { ...song, title: 'Đêm' };
+    const second = { ...song, id: '2', title: 'Dem' };
+    catalog.list.mockResolvedValue([second, first]);
+    const user = userEvent.setup();
+    const visit = render(<App />);
+    await user.click(await screen.findByRole('button', { name: 'Luyện hát Đêm' }));
+    expect(window.location.pathname).toBe('/practice/dem--1');
+    await user.click(screen.getByRole('button', { name: 'Về thư viện' }));
+    await user.click(screen.getByRole('button', { name: 'Luyện hát Dem' }));
+    expect(window.location.pathname).toBe('/practice/dem--2');
+    visit.unmount();
+    catalog.list.mockResolvedValue([first, second]);
+    const reload = render(<App />);
+    expect(await screen.findByRole('heading', { name: 'Dem', level: 1 })).toBeInTheDocument();
+    reload.unmount();
+    window.history.replaceState(null, '', '/practice/dem');
+    render(<App />);
+    expect(await screen.findByRole('heading', { name: /không tìm thấy bài hát/i })).toBeInTheDocument();
+  });
+
+  it('does not let a title slug hijack another song’s legacy ID', async () => {
+    catalog.list.mockResolvedValue([song, { ...song, id: '2', title: '1' }]);
+    const user = userEvent.setup();
+    const visit = render(<App />);
+    await user.click(await screen.findByRole('button', { name: 'Luyện hát 1' }));
+    expect(window.location.pathname).toBe('/practice/1--2');
+    visit.unmount();
+    window.history.replaceState(null, '', '/practice/1');
+    render(<App />);
+    expect(await screen.findByRole('heading', { name: song.title, level: 1 })).toBeInTheDocument();
+    expect(window.location.pathname).toBe('/practice/a-practice-song');
   });
 
   it('waits for the catalog before declaring a song missing', async () => {
