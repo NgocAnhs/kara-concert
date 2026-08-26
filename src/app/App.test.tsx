@@ -9,7 +9,8 @@ describe('App', () => {
   it('shows the public practice catalog', () => {
     render(<App />);
 
-    expect(screen.getByRole('heading', { name: /concert practice/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /thuộc từng câu/i })).toBeInTheDocument();
+    expect(screen.getByText('Concert Practice')).toBeInTheDocument();
   });
 
   it('explains when the public catalog is not configured', () => {

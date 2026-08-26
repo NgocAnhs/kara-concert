@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Brand } from '../components/Brand';
 import { PracticePanel } from '../components/PracticePanel';
 import { SongLibrary } from '../components/SongLibrary';
 import type { Song } from '../domain/song';
@@ -21,17 +22,22 @@ export function App() {
 
   return (
     <main className="app-shell">
+      <header className="site-header"><Brand /><span className="header-note">Phòng luyện hát của bạn</span></header>
       <section className="hero">
-        <p className="eyebrow">Concert practice</p>
-        <h1>Concert Practice</h1>
-        <p className="hero-copy">
-          Jump to any lyric line, slow the song down, and loop the exact part you want to rehearse.
-        </p>
+        <div className="hero-content">
+          <p className="eyebrow">Từ căn phòng nhỏ đến sân khấu lớn</p>
+          <h1>Thuộc từng câu.<br />Cháy hết mình.</h1>
+          <p className="hero-copy">Chọn bài bạn thích. Luyện từng đoạn.<br />Sẵn sàng cho đêm concert.</p>
+          <div className="hero-tags"><span>Luyện lời</span><span>Chậm lại</span><span>Lặp đến khi thuộc</span></div>
+        </div>
+        <div className="hero-art" aria-hidden="true"><div className="hero-disc" /><div className="concert-ticket"><span>CONCERT PRACTICE</span><strong>YOUR<br />NEXT<br />ENCORE.</strong><div className="ticket-bottom">ADMIT ONE <span>★</span> EVERY DAY</div></div></div>
+        <span className="hero-sticker" aria-hidden="true">SING IT YOUR WAY</span>
       </section>
-      {!supabase && <p role="alert" className="notice notice-warning">Supabase is not configured. Add the public VITE_SUPABASE values to run the catalog.</p>}
-      {supabase && error && <p role="alert" className="notice notice-warning">{error}</p>}
-      {supabase && songs === null && !error && <p className="notice">Loading songs…</p>}
+      {!supabase && <p role="alert" className="notice notice-warning">Thư viện chưa được kết nối với Supabase. Hãy thêm cấu hình công khai VITE_SUPABASE để tải bài hát.</p>}
+      {supabase && error && <p role="alert" className="notice notice-warning">Chưa tải được thư viện bài hát. Bạn kiểm tra kết nối rồi tải lại trang nhé.</p>}
+      {supabase && songs === null && !error && <p role="status" className="notice loading-notice"><span className="loading-dot" aria-hidden="true" />Đang tải bài hát…</p>}
       {supabase && songs && <SongLibrary songs={songs} onPractice={setSelectedSong} />}
+      <footer className="site-footer"><span>Luyện một chút mỗi ngày. Tự tin hơn mỗi lần hát.</span><span>Made for your next concert.</span></footer>
     </main>
   );
 }

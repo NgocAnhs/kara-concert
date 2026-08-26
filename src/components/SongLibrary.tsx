@@ -12,42 +12,38 @@ export function SongLibrary({ songs, onPractice }: SongLibraryProps) {
     () => songs.filter((song) => song.title.toLocaleLowerCase().includes(query.toLocaleLowerCase())),
     [query, songs],
   );
-  const songCountLabel = `${visibleSongs.length} song${visibleSongs.length === 1 ? '' : 's'} ready to practice`;
-
-  if (songs.length === 0) {
-    return <p className="notice">No songs published yet.</p>;
-  }
-
   return (
-    <section aria-label="Song library" className="library-shell">
+    <section aria-label="Thư viện bài hát" className="library-shell">
       <div className="library-header">
         <div>
-          <p className="eyebrow">Set list</p>
-          <h2>Choose a song to rehearse</h2>
+          <p className="eyebrow">Bài hát cho buổi luyện hôm nay</p>
+          <h2>Setlist của bạn<span className="heading-dot" aria-hidden="true">.</span></h2>
         </div>
-        <p className="library-count">{songCountLabel}</p>
+        <p className="library-count" aria-live="polite">{visibleSongs.length} bài hát</p>
       </div>
       <label className="search-field">
-        <span>Search songs</span>
+        <span className="sr-only">Tìm bài hát</span>
+        <span className="search-symbol" aria-hidden="true" />
         <input
           type="search"
-          placeholder="Search by title"
+          placeholder="Tìm bài hát bạn muốn luyện…"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
         />
       </label>
+      {songs.length === 0 ? <div className="empty-state" role="status"><h3>Chưa có bài hát được xuất bản.</h3><p>Setlist đang được chuẩn bị. Bạn quay lại sau nhé.</p></div> : visibleSongs.length === 0 && <div className="empty-state" role="status"><h3>Không tìm thấy bài hát phù hợp.</h3><p>Thử một tên khác hoặc xóa nội dung tìm kiếm nhé.</p></div>}
       <ul className="song-grid">
-        {visibleSongs.map((song) => (
-          <li key={song.id} className="song-card">
-            <p className="song-card-kicker">Ready now</p>
-            <h3>{song.title}</h3>
-            <p className="song-card-copy">Open practice mode, tap lyric lines, and loop the tricky section until it lands.</p>
-            <button className="primary-button" type="button" onClick={() => onPractice(song)}>
-              Practice {song.title}
+        {visibleSongs.map((song, index) => (
+          <li key={song.id} className={`song-card cover-variant-${index % 3}`}>
+            <div className="song-cover" aria-hidden="true"><span>{song.title.slice(0, 2).toUpperCase()}</span><i /></div>
+            <div className="song-card-body"><p className="song-card-kicker">Sẵn sàng lên giọng</p><h3>{song.title}</h3><p className="song-card-copy">{song.lines.length > 0 ? `${song.lines.length} câu hát để luyện` : 'Khám phá bài hát'}</p></div>
+            <button className="song-play" type="button" aria-label={`Luyện hát ${song.title}`} onClick={() => onPractice(song)}>
+              <span className="play-symbol" aria-hidden="true" />
             </button>
           </li>
         ))}
       </ul>
+      <aside className="practice-tip"><span className="tip-label">MẸO NHỎ</span><p><strong>Chưa thuộc? Cứ chậm lại.</strong> Chọn một câu, giảm tốc độ và lặp đến khi giai điệu trở nên quen thuộc.</p><span className="tip-decoration" aria-hidden="true">0.75×</span></aside>
     </section>
   );
 }
