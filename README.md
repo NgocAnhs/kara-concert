@@ -17,6 +17,14 @@ Implementation plan: `docs/superpowers/plans/2026-08-26-kpop-vibrant-ui.md`.
 
 The existing Sites project could not be resolved (`project_not_found`) during this update. Once the correct existing project is accessible, set absolute `og:image` and `twitter:image` URLs to its trusted origin plus `/og.png`, and change `twitter:card` to `summary_large_image`. Do not guess a production origin or replace the stored project ID by matching a title. The current HTML intentionally includes text-only social metadata until that publication step is possible.
 
+## Page routes
+
+- `/` — public song library.
+- `/practice/:songId` — practice a published song by ID; supports direct links and refresh.
+- Any other path displays a Vietnamese 404 page with a link back to the library. Missing/unpublished songs show a song-specific 404 after the catalog loads; loading, configuration, and network failures remain separate states.
+
+Navigation uses React Router and supports browser Back/Forward. Returning to the library restores heading focus. Practice selections and playback settings are local to the current visit, not saved in the URL.
+
 ## Run locally
 
 ```bash
@@ -76,5 +84,7 @@ Automated tests cover catalog loading/error/empty states, searching, navigation 
 ## Deploy
 
 Deploy the repository as a static Vite site to Vercel or Netlify. Use `npm run build` as the build command and `dist` as the output directory. Configure the two `VITE_SUPABASE_*` values in the hosting provider's environment settings.
+
+`vercel.json` and `public/_redirects` provide the SPA fallback for Vercel and Netlify. The Sites asset handler also falls back to `index.html` for missing HTML page requests while preserving missing-asset and non-navigation responses. These fallbacks let React Router handle direct links and display its 404 screen; the static page shell itself has HTTP status 200. Other hosts must configure an equivalent fallback.
 
 YouTube is embedded directly; this site does not download, proxy, or store audio/video.

@@ -127,6 +127,7 @@ h1[tabindex]:focus-visible { outline: 2px solid currentColor; outline-offset: 6p
 .secondary-button { color: var(--accent); background: var(--surface); border-color: var(--control-border); }
 .secondary-button:not(:disabled):hover, .ghost-button:hover { background: var(--accent-soft); }
 .ghost-button { background: transparent; color: var(--muted); }
+.route-home-link { display: inline-flex; align-items: center; margin-top: 20px; text-decoration: none; }
 .action-row { display: flex; flex-wrap: wrap; gap: 8px; }
 .action-row button { flex: 1; }
 .lyric-list { position: relative; display: grid; align-content: start; gap: 8px; padding: 4px; margin: -4px; scroll-padding: 8px; scrollbar-width: thin; scrollbar-color: var(--control-border) transparent; }
