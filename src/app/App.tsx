@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Brand } from '../components/Brand';
 import { PracticePanel } from '../components/PracticePanel';
 import { SongLibrary } from '../components/SongLibrary';
@@ -10,6 +10,13 @@ export function App() {
   const [songs, setSongs] = useState<Song[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [selectedSong, setSelectedSong] = useState<Song | null>(null);
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  const previousSong = useRef<Song | null>(null);
+
+  useEffect(() => {
+    if (!selectedSong && previousSong.current) headingRef.current?.focus();
+    previousSong.current = selectedSong;
+  }, [selectedSong]);
 
   useEffect(() => {
     if (!supabase) return;
@@ -26,7 +33,7 @@ export function App() {
       <section className="hero">
         <div className="hero-content">
           <p className="eyebrow">Từ căn phòng nhỏ đến sân khấu lớn</p>
-          <h1>Thuộc từng câu.<br />Cháy hết mình.</h1>
+          <h1 ref={headingRef} tabIndex={-1}>Thuộc từng câu.<br />Cháy hết mình.</h1>
           <p className="hero-copy">Chọn bài bạn thích. Luyện từng đoạn.<br />Sẵn sàng cho đêm concert.</p>
           <div className="hero-tags"><span>Luyện lời</span><span>Chậm lại</span><span>Lặp đến khi thuộc</span></div>
         </div>

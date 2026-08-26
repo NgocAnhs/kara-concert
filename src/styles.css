@@ -15,6 +15,7 @@ button:focus-visible, input:focus-visible, a:focus-visible { outline: 3px solid 
 button:disabled { cursor: not-allowed; opacity: .5; }
 h1, h2, h3, p { margin-top: 0; }
 h1, h2, h3 { text-wrap: balance; overflow-wrap: anywhere; }
+h1[tabindex]:focus-visible { outline: 2px solid currentColor; outline-offset: 6px; border-radius: 4px; }
 .sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
 .app-shell, .practice-shell { max-width: 1200px; margin: auto; padding: 0 40px; }
 .site-header { display: flex; justify-content: space-between; align-items: center; gap: 16px; min-height: 100px; }
@@ -47,6 +48,7 @@ h1, h2, h3 { text-wrap: balance; overflow-wrap: anywhere; }
 .library-header .eyebrow { font-size: 12px; color: var(--muted); }
 .library-count { margin: 0; flex-shrink: 0; color: var(--muted); font-size: 13px; }
 .search-field { display: flex; gap: 14px; align-items: center; min-height: 54px; background: var(--surface); border: 1px solid var(--control-border); border-radius: 14px; padding: 0 18px; }
+.search-label { display: block; font-size: 13px; font-weight: 650; color: var(--muted); margin-bottom: 8px; }
 .search-field:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
 .search-field input { flex: 1; width: 100%; min-width: 0; min-height: 52px; border: 0; color: var(--ink); background: transparent; font-size: 16px; }
 .search-field input:focus-visible { outline-offset: -2px; border-radius: 6px; }
@@ -85,14 +87,28 @@ h1, h2, h3 { text-wrap: balance; overflow-wrap: anywhere; }
 .loading-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--accent); }
 
 /* Practice surfaces share the same tokens; layout is progressively enhanced. */
-.practice-shell { padding-top: 24px; padding-bottom: 24px; }
+.practice-shell { padding-top: 20px; padding-bottom: 24px; }
+.practice-topbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-bottom: 24px; }
+.practice-topbar .brand { font-size: 16px; }
+.back-button { display: flex; align-items: center; gap: 10px; margin-left: -12px; }
+.back-button > span { font-size: 20px; line-height: 1; }
+.practice-badge { color: var(--accent); background: var(--accent-soft); padding: 7px 12px; border-radius: 30px; font-size: 12px; font-weight: 700; flex-shrink: 0; }
+.practice-header > div { min-width: 0; }
+.practice-header .eyebrow { font-size: 11px; margin-bottom: 6px; }
+.youtube-label { font-size: 12px; color: var(--muted); border: 1px solid var(--line); padding: 4px 10px; border-radius: 6px; }
+.player-tip { color: var(--muted); font-size: 12px; text-align: center; margin: 16px 0 0; }
+.loop-status { display: flex; align-items: center; justify-content: center; gap: 8px; margin: 14px 0 0; font-size: 12px; color: var(--accent); }
+.loop-status > span { height: 6px; width: 6px; border-radius: 50%; background: currentColor; }
+.lyrics-help { font-size: 13px; color: var(--muted); margin: -8px 0 18px; }
+.panel-lyrics .notice { margin: 0 0 16px; }
 .practice-header, .panel-heading { display: flex; justify-content: space-between; gap: 16px; align-items: center; margin-bottom: 20px; }
 .practice-header h1 { font-size: 30px; line-height: 1.2; margin: 0; }
 .practice-layout { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 24px; align-items: start; }
 .panel { padding: 24px; border: 1px solid var(--line); background: var(--surface); border-radius: 24px; min-width: 0; }
 .panel-heading h2 { font-size: 20px; margin: 0; }
 .panel-kicker { color: var(--accent); font-size: 12px; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 4px; }
-.selection-pill { color: var(--accent); background: var(--accent-soft); border-radius: 10px; padding: 8px 12px; font-size: 12px; margin: 0; }
+.selection-pill { color: var(--muted); background: var(--background); border-radius: 10px; padding: 10px 12px; font-size: 13px; margin: 0; }
+.selection-pill.has-range { color: var(--accent); background: var(--accent-soft); font-weight: 650; font-variant-numeric: tabular-nums; }
 .video-frame { background: #201b28; border-radius: 16px; overflow: hidden; }
 .video-frame > div, .video-frame iframe { display: block; width: 100%; }
 .video-frame iframe { height: auto; aspect-ratio: 16/9; min-height: 200px; border: 0; }
@@ -113,17 +129,27 @@ h1, h2, h3 { text-wrap: balance; overflow-wrap: anywhere; }
 .ghost-button { background: transparent; color: var(--muted); }
 .action-row { display: flex; flex-wrap: wrap; gap: 8px; }
 .action-row button { flex: 1; }
-.lyric-list { display: grid; gap: 8px; }
+.lyric-list { position: relative; display: grid; align-content: start; gap: 8px; padding: 4px; margin: -4px; scroll-padding: 8px; scrollbar-width: thin; scrollbar-color: var(--control-border) transparent; }
+.lyric-card:focus-visible { outline-offset: 1px; }
 .lyric-card { text-align: left; display: grid; gap: 4px; width: 100%; padding: 16px; border: 1px solid var(--line); border-radius: 14px; color: var(--ink); background: var(--surface); overflow-wrap: anywhere; }
 .lyric-card:hover { background: var(--background); }
 .lyric-card.is-selected { background: var(--accent-soft); border-color: var(--accent); }
 .lyric-card.is-active { box-shadow: inset 3px 0 var(--accent); }
 .lyric-card-topline { display: flex; gap: 12px; align-items: center; justify-content: space-between; color: var(--muted); font-size: 12px; }
+.lyric-position { display: inline-flex; gap: 8px; align-items: center; font-variant-numeric: tabular-nums; flex-shrink: 0; }
+.lyric-states { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 8px; min-width: 0; color: var(--accent); font-size: 12px; }
+.selected-label { font-weight: 650; }
+.active-label { display: inline-flex; gap: 5px; align-items: center; font-weight: 750; }
+.active-label i { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
 .lyric-korean { font-size: 19px; font-weight: 650; line-height: 1.6; }
 .lyric-viet-han { font-size: 15px; font-weight: 650; color: var(--accent); }
 .lyric-romanization { font-size: 13px; color: var(--muted); }
 .lyric-meaning { font-size: 14px; color: var(--muted); }
 .active-line { color: var(--accent); }
+@media (min-width: 1024px) {
+  .panel-player { position: sticky; top: 24px; }
+  .lyric-list { max-height: max(20rem, calc(100dvh - 19rem)); overflow-y: auto; overscroll-behavior-y: contain; }
+}
 @media (max-width: 1023px) {
   .app-shell, .practice-shell { padding-left: 24px; padding-right: 24px; }
   .hero { padding: 36px; grid-template-columns: 1.3fr 1fr; }
@@ -147,7 +173,7 @@ h1, h2, h3 { text-wrap: balance; overflow-wrap: anywhere; }
   .hero-tags span { font-size: 12px; padding: 4px 8px; }
   .hero-sticker { right: 12px; top: 10px; font-size: 9px; padding: 6px 9px; }
   .hero-art { position: absolute; inset: 0; z-index: -1; }
-  .hero-disc { width: 215px; height: 215px; top: 60px; right: -120px; border-width: 27px; box-shadow: none; }
+  .hero-disc { width: 215px; height: 215px; top: 60px; right: -120px; border-width: 27px; border-color: #7842dc; box-shadow: none; }
   .concert-ticket { display: none; }
   .library-shell { padding-top: 28px; }
   .library-header { gap: 12px; margin-bottom: 16px; }
@@ -168,11 +194,35 @@ h1, h2, h3 { text-wrap: balance; overflow-wrap: anywhere; }
   .tip-decoration { display: none; }
   .site-footer { flex-direction: column; gap: 6px; padding-bottom: max(24px, env(safe-area-inset-bottom)); }
   .practice-shell { padding-top: 16px; padding-bottom: max(20px, env(safe-area-inset-bottom)); }
-  .practice-header { flex-wrap: wrap; }
+  .practice-topbar { padding-bottom: 14px; }
+  .practice-topbar .brand { font-size: 13px; gap: 6px; }
+  .practice-topbar .brand-mark { display: none; }
+  .back-button { padding: 8px; margin-left: -8px; font-size: 13px; gap: 6px; }
+  .practice-header { flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+  .practice-header .eyebrow { display: none; }
   .practice-header h1 { font-size: 26px; }
+  .practice-badge { font-size: 12px; padding: 5px 10px; }
+  .practice-layout { display: flex; flex-direction: column; gap: 16px; }
+  .practice-layout > .panel { width: 100%; }
+  .panel-player .panel-heading { display: none; }
+  .panel-player .control-cluster { margin-top: 14px; gap: 10px; }
+  .panel-player .player-tip { display: none; }
+  .speed-control { position: relative; padding-top: 0; }
+  .speed-control legend { float: left; margin: 0 12px 0 0; min-height: 44px; display: flex; align-items: center; }
+  .segmented-control { justify-content: flex-end; gap: 6px; }
+  .segment { min-width: 52px; padding: 8px; }
+  .selection-pill { font-size: 12px; padding: 8px 10px; }
+  .loop-status { margin-top: 10px; }
   .panel { padding: 16px; border-radius: 20px; }
   .panel-heading { flex-wrap: wrap; }
+  .panel-lyrics .panel-kicker { display: none; }
+  .panel-lyrics .panel-heading { margin-bottom: 16px; }
+  .lyrics-help { margin-bottom: 14px; font-size: 12px; }
   .lyric-card { padding: 14px; }
+}
+/* Only bound the lyric list: headings, errors and large text can still grow the page. */
+@media (max-width: 639px) and (min-height: 50rem) {
+  .lyric-list { max-height: max(10rem, calc(100dvh - 37rem)); overflow-y: auto; overscroll-behavior-y: contain; }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; animation: none !important; }

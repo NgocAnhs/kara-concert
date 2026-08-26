@@ -57,19 +57,21 @@ export function YouTubePracticePlayer({ youtubeUrl, range, looping, playbackRate
     void playerRef.current.setPlaybackRate(playbackRate);
   }, [playbackRate]);
 
-  if (!videoId) return <p role="alert">This YouTube link cannot be embedded.</p>;
+  if (!videoId) return <p role="alert">Không thể nhúng liên kết YouTube này.</p>;
 
   return <>
     {error && <p role="alert">{error}</p>}
     <YouTube
       videoId={videoId}
+      iframeClassName="youtube-iframe"
+      title="Video YouTube luyện hát"
       opts={{ playerVars: { rel: 0 } }}
       onReady={(event) => {
         playerRef.current = event.target;
         void event.target.setPlaybackRate(playbackRate);
         setIsReady(true);
       }}
-      onError={() => setError('This YouTube video cannot be embedded.')}
+      onError={() => setError('Không thể phát video YouTube này. Bạn vẫn có thể đọc lời bài hát bên dưới.')}
     />
   </>;
 }

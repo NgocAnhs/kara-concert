@@ -21,16 +21,19 @@ export function SongLibrary({ songs, onPractice }: SongLibraryProps) {
         </div>
         <p className="library-count" aria-live="polite">{visibleSongs.length} bài hát</p>
       </div>
-      <label className="search-field">
-        <span className="sr-only">Tìm bài hát</span>
+      <div className="search-control">
+        <label className="search-label" htmlFor="song-search">Tìm bài hát</label>
+        <div className="search-field">
         <span className="search-symbol" aria-hidden="true" />
         <input
+          id="song-search"
           type="search"
           placeholder="Tìm bài hát bạn muốn luyện…"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
         />
-      </label>
+        </div>
+      </div>
       {songs.length === 0 ? <div className="empty-state" role="status"><h3>Chưa có bài hát được xuất bản.</h3><p>Setlist đang được chuẩn bị. Bạn quay lại sau nhé.</p></div> : visibleSongs.length === 0 && <div className="empty-state" role="status"><h3>Không tìm thấy bài hát phù hợp.</h3><p>Thử một tên khác hoặc xóa nội dung tìm kiếm nhé.</p></div>}
       <ul className="song-grid">
         {visibleSongs.map((song, index) => (

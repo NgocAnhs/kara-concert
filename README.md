@@ -2,6 +2,21 @@
 
 Public K-pop lyric-practice site. Visitors can search published songs, select one lyric line or a contiguous range, and loop that range while an embedded YouTube video plays.
 
+## K-pop Vibrant interface
+
+The public UI uses Vietnamese labels, a purple/lilac/lime visual system, and responsive library/practice screens. Korean lyrics, Vietnamese-friendly pronunciation, romanization, and meanings are retained as provided by the catalog. Selected and currently playing lines have separate text indicators. Controls support keyboard focus, and lyric following respects reduced-motion preferences.
+
+Desktop practice uses two columns and an independently scrolling lyric list. Tall phones keep the player above a scrolling lyric panel; short screens fall back to document scrolling to avoid hiding controls. Decorative song covers use title initials, not invented artist or album metadata.
+
+Design: `docs/superpowers/specs/2026-08-26-kpop-vibrant-ui-design.md`.
+Implementation plan: `docs/superpowers/plans/2026-08-26-kpop-vibrant-ui.md`.
+
+### Social preview asset
+
+`public/og.png` was generated once with the built-in image generator, then checked for the exact title and supporting text. It is not loaded in the UI. The prompt requested a landscape K-pop Vibrant card in purple `#6933D4`, lilac `#F7F3FF`, lime `#E3FF78`, and dark purple `#231538`, with bold sans-serif type, a vinyl-circle/concert-ticket motif, and exactly “Concert Practice” / “Your next encore starts here.” No people, artists, logos, or additional lettering.
+
+The existing Sites project could not be resolved (`project_not_found`) during this update. Once the correct existing project is accessible, set absolute `og:image` and `twitter:image` URLs to its trusted origin plus `/og.png`, and change `twitter:card` to `summary_large_image`. Do not guess a production origin or replace the stored project ID by matching a title. The current HTML intentionally includes text-only social metadata until that publication step is possible.
+
 ## Run locally
 
 ```bash
@@ -55,6 +70,8 @@ The public site has no create, edit, import, export, or sign-in function. Row Le
 npm run test -- --run
 npm run build
 ```
+
+Automated tests cover catalog loading/error/empty states, searching, navigation focus, adjacent selections, playback mode/rate, preserved lyric fields, selected/playing status, and reduced-motion/container scrolling. Layout breakpoints and contrast were reviewed in code; browser visual QA and real YouTube playback testing have not been performed for this redesign. The build may report the existing large-chunk warning; it does not prevent static output.
 
 ## Deploy
 

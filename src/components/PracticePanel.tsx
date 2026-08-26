@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Song } from '../domain/song';
 import { createPracticeRange, type PracticeRange } from '../domain/practiceRange';
+import { Brand } from './Brand';
+import { LyricLineButton } from './LyricLineButton';
 import { YouTubePracticePlayer } from './YouTubePracticePlayer';
 
 type PracticePanelProps = { song: Song; onBack(): void };
@@ -17,23 +19,38 @@ export function PracticePanel({ song, onBack }: PracticePanelProps) {
   const [currentTime, setCurrentTime] = useState(0);
   const [playbackRate, setPlaybackRate] = useState(1);
   const lyricCardRefs = useRef(new Map<string, HTMLButtonElement>());
+  const lyricListRef = useRef<HTMLDivElement>(null);
+  const headingRef = useRef<HTMLHeadingElement>(null);
   const lastActiveLineId = useRef<string | null>(null);
-  const selectedLineCount = selectedIds.length;
   const activeLineId = song.lines.find(
     (line) => currentTime >= line.startSeconds && currentTime < line.endSeconds,
   )?.id ?? null;
 
+  useEffect(() => { headingRef.current?.focus(); }, []);
+
   useEffect(() => {
     if (!activeLineId || activeLineId === lastActiveLineId.current) return;
     lastActiveLineId.current = activeLineId;
-    lyricCardRefs.current.get(activeLineId)?.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
+    const card = lyricCardRefs.current.get(activeLineId);
+    const list = lyricListRef.current;
+    if (!card) return;
+    const behavior = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth';
+    const hasIndependentScroll = list && ['auto', 'scroll'].includes(window.getComputedStyle(list).overflowY);
+    if (hasIndependentScroll) {
+      // The positioned lyric list is the card's offset parent: scroll it, not the player.
+      if (list.scrollHeight > list.clientHeight && list.clientHeight > 0) {
+        list.scrollTo({ top: card.offsetTop - list.clientHeight / 2 + card.clientHeight / 2, behavior });
+      }
+    } else {
+      card.scrollIntoView?.({ behavior, block: 'center', inline: 'nearest' });
+    }
   }, [activeLineId]);
 
   const toggleLine = (lineId: string) => {
     const nextIds = selectedIds.includes(lineId) ? selectedIds.filter((id) => id !== lineId) : [...selectedIds, lineId];
     const nextRange = createPracticeRange(song.lines, nextIds);
     if (nextIds.length > 0 && !nextRange) {
-      setError('Choose adjacent lyric lines to make a practice range.');
+      setError('Hãy chọn các câu liền nhau để tạo một đoạn luyện hát.');
       return;
     }
     setError(null);
@@ -43,106 +60,70 @@ export function PracticePanel({ song, onBack }: PracticePanelProps) {
 
   return (
     <main className="practice-shell">
+      <header className="practice-topbar">
+        <button className="ghost-button back-button" type="button" onClick={onBack}><span aria-hidden="true">←</span> Về thư viện</button>
+        <Brand />
+      </header>
       <div className="practice-header">
-        <button className="ghost-button" type="button" onClick={onBack}>Back to library</button>
-        <div>
-          <p className="eyebrow">Practice mode</p>
-          <h1>{song.title}</h1>
-        </div>
+        <div><p className="eyebrow">Sân khấu nhỏ của bạn</p><h1 ref={headingRef} tabIndex={-1}>{song.title}</h1></div>
+        <span className="practice-badge">Luyện từng câu</span>
       </div>
 
       <div className="practice-layout">
-        <section aria-label="Player" className="panel panel-player">
+        <section aria-label="Trình phát" className="panel panel-player">
           <div className="panel-heading">
-            <div>
-              <p className="panel-kicker">Playback</p>
-              <h2>Player</h2>
-            </div>
-            <p className="selection-pill">
-              {range
-                ? `Selected: ${formatSeconds(range.startSeconds)} - ${formatSeconds(range.endSeconds)}`
-                : 'Select a lyric line to start'}
-            </p>
+            <div><p className="panel-kicker">Nghe & cảm nhận</p><h2>Trình phát</h2></div>
+            <span className="youtube-label">YouTube</span>
           </div>
-
           <div className="video-frame">
-            <YouTubePracticePlayer
-              youtubeUrl={song.youtubeUrl}
-              range={range}
-              looping={looping}
-              playbackRate={playbackRate}
-              onCurrentTime={setCurrentTime}
-            />
+            <YouTubePracticePlayer youtubeUrl={song.youtubeUrl} range={range} looping={looping} playbackRate={playbackRate} onCurrentTime={setCurrentTime} />
           </div>
-
           <div className="control-cluster">
             <fieldset className="speed-control">
-              <legend>Playback speed</legend>
+              <legend>Tốc độ phát</legend>
               <div className="segmented-control">
                 {[0.75, 1, 1.25].map((speed) => (
                   <label key={speed} className={playbackRate === speed ? 'segment is-active' : 'segment'}>
-                    <input
-                      type="radio"
-                      name="playback-speed"
-                      value={speed}
-                      checked={playbackRate === speed}
-                      onChange={() => setPlaybackRate(speed)}
-                    />
+                    <input type="radio" name="playback-speed" value={speed} checked={playbackRate === speed} onChange={() => setPlaybackRate(speed)} />
                     <span>{speed.toFixed(2).replace(/\.00$/, '')}x</span>
                   </label>
                 ))}
               </div>
             </fieldset>
-
+            <p className={range ? 'selection-pill has-range' : 'selection-pill'} aria-live="polite">
+              {range ? `Đã chọn: ${formatSeconds(range.startSeconds)} – ${formatSeconds(range.endSeconds)}` : 'Chọn một câu hát để luyện hoặc lặp đoạn.'}
+            </p>
             <div className="action-row">
-              <button className={looping ? 'secondary-button' : 'primary-button'} type="button" disabled={!range} onClick={() => setLooping(false)}>Play once</button>
-              <button className={looping ? 'primary-button' : 'secondary-button'} type="button" disabled={!range} onClick={() => setLooping(true)}>Loop selected range</button>
+              <button className={looping ? 'secondary-button' : 'primary-button'} type="button" disabled={!range} aria-pressed={!looping} onClick={() => setLooping(false)}>Phát một lần</button>
+              <button className={looping ? 'primary-button' : 'secondary-button'} type="button" disabled={!range} aria-pressed={looping} onClick={() => setLooping(true)}>Lặp đoạn</button>
             </div>
           </div>
-
-          {looping && <p className="notice">Looping selected range</p>}
-          {error && <p role="alert" className="notice notice-warning">{error}</p>}
+          {looping && range && <p className="loop-status" role="status"><span aria-hidden="true" />Đang lặp đoạn đã chọn</p>}
+          <p className="player-tip">Cứ chậm lại. Mỗi lần lặp là một lần tự tin hơn.</p>
         </section>
 
-        <section aria-label="Lyrics" className="panel panel-lyrics">
+        <section aria-label="Lời bài hát" className="panel panel-lyrics">
           <div className="panel-heading">
-            <div>
-              <p className="panel-kicker">Line practice</p>
-              <h2>Lyrics</h2>
-            </div>
-            <p className="library-count">
-              {selectedLineCount > 0 ? `${selectedLineCount} line${selectedLineCount === 1 ? '' : 's'} selected` : 'Tap adjacent lines to build a loop'}
-            </p>
+            <div><p className="panel-kicker">Hát theo cách của bạn</p><h2>Lời bài hát</h2></div>
+            <p className="library-count" aria-live="polite">{selectedIds.length > 0 ? `${selectedIds.length} câu đã chọn` : `${song.lines.length} câu hát`}</p>
           </div>
-
-          <div className="lyric-list">
-            {song.lines.map((line) => {
-              const isSelected = selectedIds.includes(line.id);
-              const isActive = line.id === activeLineId;
-
-              return (
-                <button
-                  key={line.id}
-                  type="button"
-                  className={isSelected ? 'lyric-card is-selected' : isActive ? 'lyric-card is-active' : 'lyric-card'}
-                  aria-pressed={isSelected}
-                  onClick={() => toggleLine(line.id)}
-                  ref={(element) => {
-                    if (element) lyricCardRefs.current.set(line.id, element);
-                    else lyricCardRefs.current.delete(line.id);
-                  }}
-                >
-                  <div className="lyric-card-topline">
-                    <span className="lyric-time">{formatSeconds(line.startSeconds)}</span>
-                    <span className="lyric-index">{String(line.displayOrder + 1).padStart(2, '0')}</span>
-                  </div>
-                  <span className={isActive ? 'active-line lyric-korean' : 'lyric-korean'}>{line.korean}</span>
-                  {line.vietHan && <small className="lyric-viet-han">{line.vietHan}</small>}
-                  {line.romanization && <small className="lyric-romanization">{line.romanization}</small>}
-                  {line.meaning && <small className="lyric-meaning">{line.meaning}</small>}
-                </button>
-              );
-            })}
+          <p className="lyrics-help">Chạm các câu liền nhau để luyện một đoạn.</p>
+          {error && <p role="alert" className="notice notice-warning">{error}</p>}
+          {song.lines.length === 0 && <p role="status" className="notice">Bài hát này chưa có lời để luyện. Bạn vẫn có thể nghe video.</p>}
+          <div className="lyric-list" role="group" aria-label="Các câu hát" ref={lyricListRef}>
+            {song.lines.map((line) => (
+              <LyricLineButton
+                key={line.id}
+                line={line}
+                selected={selectedIds.includes(line.id)}
+                active={line.id === activeLineId}
+                onSelect={() => toggleLine(line.id)}
+                buttonRef={(element) => {
+                  if (element) lyricCardRefs.current.set(line.id, element);
+                  else lyricCardRefs.current.delete(line.id);
+                }}
+              />
+            ))}
           </div>
         </section>
       </div>

@@ -1,4 +1,4 @@
-import { render } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { useEffect } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { YouTubePracticePlayer } from '../../src/components/YouTubePracticePlayer';
@@ -47,6 +47,11 @@ describe('YouTubePracticePlayer', () => {
     );
 
     expect(player.setPlaybackRate).toHaveBeenCalledWith(0.75);
+  });
+
+  it('explains an invalid video URL in Vietnamese', () => {
+    render(<YouTubePracticePlayer youtubeUrl="invalid" range={null} looping={false} playbackRate={1} onCurrentTime={vi.fn()} />);
+    expect(screen.getByRole('alert')).toHaveTextContent(/không thể nhúng/i);
   });
 
   it('pauses when a one-time lyric range reaches its end', async () => {
