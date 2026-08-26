@@ -118,4 +118,4 @@ Tiêu chí hoàn thành: hai màn hình cùng hệ thống K-pop Vibrant, đầy
 - Đã xác định tình huống mobile thấp, trạng thái active + selected và không có dữ liệu.
 - Phạm vi gói gọn trong UI công khai; không kéo theo schema, tài khoản hoặc chức năng quản trị.
 
-**Trạng thái:** Hướng K-pop Vibrant đã được chọn; đặc tả này đang chờ người dùng duyệt trước khi lập kế hoạch triển khai.
+**Trạng thái:** Người dùng đã duyệt hướng K-pop Vibrant và đặc tả trong cuộc trò chuyện ngày 26/08/2026. Được phép lập kế hoạch và triển khai.
