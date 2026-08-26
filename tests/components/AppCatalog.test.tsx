@@ -42,7 +42,7 @@ describe('App catalog navigation', () => {
     window.history.replaceState(null, '', '/practice/a-practice-song');
     catalog.list.mockResolvedValue([song]);
     const firstVisit = render(<App />);
-    expect(await screen.findByRole('heading', { name: song.title, level: 1 })).toHaveFocus();
+    await waitFor(() => expect(screen.getByRole('heading', { name: song.title, level: 1 })).toHaveFocus());
     firstVisit.unmount();
     render(<App />);
     expect(await screen.findByRole('heading', { name: song.title, level: 1 })).toBeInTheDocument();
@@ -58,7 +58,7 @@ describe('App catalog navigation', () => {
     expect(await screen.findByRole('searchbox')).toBeInTheDocument();
     await waitFor(() => expect(window.location.pathname).toBe('/'));
     act(() => window.history.forward());
-    expect(await screen.findByRole('heading', { name: song.title, level: 1 })).toHaveFocus();
+    await waitFor(() => expect(screen.getByRole('heading', { name: song.title, level: 1 })).toHaveFocus());
     expect(window.location.pathname).toBe('/practice/a-practice-song');
   });
 
@@ -66,7 +66,7 @@ describe('App catalog navigation', () => {
     window.history.pushState(null, '', '/practice/1?source=share#lyrics');
     catalog.list.mockResolvedValue([song]);
     render(<App />);
-    expect(await screen.findByRole('heading', { name: song.title, level: 1 })).toHaveFocus();
+    await waitFor(() => expect(screen.getByRole('heading', { name: song.title, level: 1 })).toHaveFocus());
     await waitFor(() => expect(window.location.pathname).toBe('/practice/a-practice-song'));
     expect(window.location.search).toBe('?source=share');
     expect(window.location.hash).toBe('#lyrics');
@@ -74,7 +74,7 @@ describe('App catalog navigation', () => {
     expect(await screen.findByRole('searchbox')).toBeInTheDocument();
     expect(window.location.pathname).toBe('/');
     act(() => window.history.forward());
-    expect(await screen.findByRole('heading', { name: song.title, level: 1 })).toHaveFocus();
+    await waitFor(() => expect(screen.getByRole('heading', { name: song.title, level: 1 })).toHaveFocus());
     expect(window.location.pathname).toBe('/practice/a-practice-song');
   });
 

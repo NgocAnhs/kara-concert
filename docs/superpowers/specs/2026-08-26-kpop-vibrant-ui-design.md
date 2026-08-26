@@ -106,7 +106,7 @@ Header có “Về thư viện”, tên bài và ngữ cảnh luyện hát. Khô
 2. Chạy lại toàn bộ kiểm thử domain/repository/player hiện có để tránh thay đổi hành vi nhạc ngoài phạm vi.
 3. Chạy production build bằng script hiện có.
 4. Kiểm tra yêu cầu responsive ở 375/768/1024/1440px, chiều cao thấp, chữ lớn và reduced motion bằng các kiểm tra phù hợp. Browser visual QA chỉ thực hiện khi người dùng yêu cầu kiểm thử trình duyệt; không tuyên bố đã kiểm tra trực quan nếu chưa thực hiện.
-5. Giữ cấu hình Sites hiện có. Sau khi hoàn thành và build đạt, đi theo quy trình hosting; cần người dùng xác nhận trước nếu bản cập nhật sẽ được xuất bản công khai hoặc đến nhóm đang chia sẻ.
+5. Dùng Vercel cho việc phát hành. Khi người dùng yêu cầu deploy, chạy `npm run deploy` theo README; không tự phát hành khi chỉ sửa hoặc kiểm tra giao diện.
 
 Tiêu chí hoàn thành: hai màn hình cùng hệ thống K-pop Vibrant, đầy đủ chức năng cũ, các trạng thái và lời hát đọc được, không có chức năng giả từ mockup, test/build đạt và trạng thái bàn giao được báo đúng thực tế.
 

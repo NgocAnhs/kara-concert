@@ -15,7 +15,7 @@ Implementation plan: `docs/superpowers/plans/2026-08-26-kpop-vibrant-ui.md`.
 
 `public/og.png` was generated once with the built-in image generator, then checked for the exact title and supporting text. It is not loaded in the UI. The prompt requested a landscape K-pop Vibrant card in purple `#6933D4`, lilac `#F7F3FF`, lime `#E3FF78`, and dark purple `#231538`, with bold sans-serif type, a vinyl-circle/concert-ticket motif, and exactly “Concert Practice” / “Your next encore starts here.” No people, artists, logos, or additional lettering.
 
-The existing Sites project could not be resolved (`project_not_found`) during this update. Once the correct existing project is accessible, set absolute `og:image` and `twitter:image` URLs to its trusted origin plus `/og.png`, and change `twitter:card` to `summary_large_image`. Do not guess a production origin or replace the stored project ID by matching a title. The current HTML intentionally includes text-only social metadata until that publication step is possible.
+The current HTML includes text-only social metadata. Once the existing Vercel production origin is verified, set absolute `og:image` and `twitter:image` URLs to that trusted origin plus `/og.png`, and change `twitter:card` to `summary_large_image`. Do not guess a production origin or create a replacement hosting project to resolve it.
 
 ## Page routes
 
@@ -85,10 +85,26 @@ npm run build
 
 Automated tests cover catalog loading/error/empty states, searching, navigation focus, adjacent selections, playback mode/rate, preserved lyric fields, selected/playing status, and reduced-motion/container scrolling. Layout breakpoints and contrast were reviewed in code; browser visual QA and real YouTube playback testing have not been performed for this redesign. The build may report the existing large-chunk warning; it does not prevent static output.
 
-## Deploy
+## Deploy to Vercel
 
-Deploy the repository as a static Vite site to Vercel or Netlify. Use `npm run build` as the build command and `dist` as the output directory. Configure the two `VITE_SUPABASE_*` values in the hosting provider's environment settings.
+Vercel is this project's default deployment provider. An unqualified request to "deploy" means Vercel; the repository's `AGENTS.md` records this preference for future Codex sessions.
 
-`vercel.json` and `public/_redirects` provide the SPA fallback for Vercel and Netlify. The Sites asset handler also falls back to `index.html` for missing HTML page requests while preserving missing-asset and non-navigation responses. These fallbacks let React Router handle direct links and display its 404 screen; the static page shell itself has HTTP status 200. Other hosts must configure an equivalent fallback.
+Run once to log in and link the correct account and **existing** Vercel project (do not create a new project):
+
+```bash
+npm run deploy:setup
+```
+
+Set `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` in that project's Production environment settings. These public browser values are embedded at build time; never use a service-role key.
+
+For each production release:
+
+```bash
+npm run deploy
+```
+
+This runs tests, pulls production settings, builds locally with Vercel, then uploads the prebuilt output to production. It stops if any step fails. Requires Vercel access and internet, but no AI session. `.vercel/` stays ignored by Git. See [Vercel prebuilt deployments](https://vercel.com/docs/cli/deploy#prebuilt).
+
+`npm run build` only builds locally. `vercel.json` sets the Vite build/output and SPA fallback for direct links and refresh; React Router renders the 404 screen inside an HTTP 200 page shell. After a release, check the returned URL and a direct `/practice/:slug` link.
 
 YouTube is embedded directly; this site does not download, proxy, or store audio/video.
