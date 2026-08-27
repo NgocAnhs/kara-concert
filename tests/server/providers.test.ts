@@ -156,6 +156,37 @@ describe('Gemini provider', () => {
     }]);
   });
 
+  it('emits bounded Gemini HTTP diagnostics without provider messages or content', async () => {
+    const diagnostics: unknown[] = [];
+    const provider = createGeminiProvider({
+      apiKey: 'test-key',
+      model: 'gemini-test',
+      fetch: async () => jsonResponse({
+        error: { status: 'NOT_FOUND', message: 'sensitive provider detail' },
+      }, 404),
+      onDiagnostic: (value) => diagnostics.push(value),
+    });
+
+    await expect(provider.transcribe(canonicalUrl, { signal: new AbortController().signal }))
+      .rejects.toMatchObject({ code: 'PROVIDER_TRANSIENT' });
+    expect(diagnostics).toEqual([{ event: 'HTTP_ERROR', httpStatus: 404, providerStatus: 'NOT_FOUND' }]);
+    expect(JSON.stringify(diagnostics)).not.toContain('sensitive provider detail');
+  });
+
+  it('distinguishes invalid Gemini response shape without logging response text', async () => {
+    const diagnostics: unknown[] = [];
+    const provider = createGeminiProvider({
+      apiKey: 'test-key', model: 'gemini-test',
+      fetch: async () => jsonResponse({ candidates: [{ finishReason: 'MAX_TOKENS', content: { parts: [{ text: 'secret partial text' }] } }] }),
+      onDiagnostic: (value) => diagnostics.push(value),
+    });
+
+    await expect(provider.transcribe(canonicalUrl, { signal: new AbortController().signal }))
+      .rejects.toMatchObject({ code: 'PROVIDER_TRANSIENT' });
+    expect(diagnostics).toEqual([{ event: 'INVALID_RESPONSE', finishReasons: ['MAX_TOKENS'] }]);
+    expect(JSON.stringify(diagnostics)).not.toContain('secret partial text');
+  });
+
   it('does not forward a noncanonical URL to Gemini', async () => {
     let calls = 0;
     const provider = createGeminiProvider({ apiKey: 'test-key', model: 'gemini-test', fetch: async () => {
