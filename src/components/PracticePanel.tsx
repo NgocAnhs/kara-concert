@@ -66,8 +66,9 @@ export function PracticePanel({ song, onBack }: PracticePanelProps) {
       </header>
       <div className="practice-header">
         <div><p className="eyebrow">Sân khấu nhỏ của bạn</p><h1 ref={headingRef} tabIndex={-1}>{song.title}</h1></div>
-        <span className="practice-badge">Luyện từng câu</span>
+        <span className="practice-badge">{song.source === 'ai' ? 'AI tạo' : 'Luyện từng câu'}</span>
       </div>
+      {song.source === 'ai' && <p className="notice ai-notice">AI tạo — lời và mốc thời gian có thể chưa chính xác.</p>}
 
       <div className="practice-layout">
         <section aria-label="Trình phát" className="panel panel-player">

@@ -48,4 +48,10 @@ describe('SongLibrary', () => {
     expect(screen.getByRole('heading', { name: 'A title – with a dash' })).toBeInTheDocument();
     expect(screen.queryByText('BIGBANG')).not.toBeInTheDocument();
   });
+
+  it('identifies AI-generated catalog entries with their accuracy warning', () => {
+    render(<SongLibrary songs={[{ ...songs[0], source: 'ai' }]} onPractice={vi.fn()} />);
+
+    expect(screen.getByText(/AI tạo — lời và mốc thời gian có thể chưa chính xác/i)).toBeInTheDocument();
+  });
 });

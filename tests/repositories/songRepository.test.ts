@@ -3,9 +3,12 @@ import { listPublishedSongs } from '../../src/repositories/songRepository';
 
 describe('listPublishedSongs', () => {
   it('returns mapped songs from the public catalog query', async () => {
+    let selectedColumns = '';
     const client = {
       from: () => ({
-        select: () => ({
+        select: (columns: string) => {
+          selectedColumns = columns;
+          return ({
           order: () => ({
             order: async () => ({
               data: [
@@ -19,11 +22,15 @@ describe('listPublishedSongs', () => {
               error: null,
             }),
           }),
-        }),
+          });
+        },
       }),
     };
 
     await expect(listPublishedSongs(client)).resolves.toMatchObject([{ title: 'Supernova' }]);
+    expect(selectedColumns).toContain('source');
+    expect(selectedColumns).toContain('ai_model');
+    expect(selectedColumns).toContain('prompt_version');
   });
 
   it('throws a useful error when Supabase rejects the query', async () => {

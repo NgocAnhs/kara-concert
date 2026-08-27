@@ -29,28 +29,48 @@ describe('PracticePanel', () => {
     expect(screen.getByRole('region', { name: 'Lời bài hát' })).toBeInTheDocument();
   });
 
-  it('shows Vietnamese-friendly pronunciation beneath the Korean lyric', () => {
+  it('shows pronunciation and meaning without Korean lyrics', () => {
     render(<PracticePanel song={song} onBack={vi.fn()} />);
 
     expect(screen.getByText('Chọt chul')).toBeInTheDocument();
     expect(screen.getByText('Cheot jul')).toBeInTheDocument();
     expect(screen.getByText('Dòng đầu tiên')).toBeInTheDocument();
+    expect(screen.queryByText('첫 줄')).not.toBeInTheDocument();
+    expect(screen.queryByText('둘째 줄')).not.toBeInTheDocument();
+    expect(screen.queryByText('셋째 줄')).not.toBeInTheDocument();
     expect(screen.queryByText(/đọc kiểu việt:/i)).not.toBeInTheDocument();
+  });
+
+  it('shows an English-only line as its original reading', () => {
+    const englishLine = {
+      id: 'english', korean: "I'm coming home", vietHan: "I'm coming home",
+      romanization: "I'm coming home", meaning: 'Tôi đang trở về nhà.',
+      displayOrder: 0, startSeconds: 1, endSeconds: 3,
+    };
+    render(<PracticePanel song={{ ...song, lines: [englishLine] }} onBack={vi.fn()} />);
+
+    expect(screen.getAllByText("I'm coming home").length).toBeGreaterThan(0);
+  });
+
+  it('shows the AI accuracy warning for an imported song', () => {
+    render(<PracticePanel song={{ ...song, source: 'ai' }} onBack={vi.fn()} />);
+
+    expect(screen.getByText(/AI tạo — lời và mốc thời gian có thể chưa chính xác/i)).toBeInTheDocument();
   });
 
   it('creates a range from adjacent lyric selections', async () => {
     const user = userEvent.setup();
     render(<PracticePanel song={song} onBack={vi.fn()} />);
-    await user.click(screen.getByRole('button', { name: /첫 줄/i }));
-    await user.click(screen.getByRole('button', { name: /둘째 줄/i }));
+    await user.click(screen.getByRole('button', { name: /Chọt chul/i }));
+    await user.click(screen.getByRole('button', { name: /0:04/i }));
     expect(screen.getByText(/đã chọn: 0:02.*0:06/i)).toBeInTheDocument();
   });
 
   it('rejects a non-adjacent selection', async () => {
     const user = userEvent.setup();
     render(<PracticePanel song={song} onBack={vi.fn()} />);
-    await user.click(screen.getByRole('button', { name: /첫 줄/i }));
-    await user.click(screen.getByRole('button', { name: /셋째 줄/i }));
+    await user.click(screen.getByRole('button', { name: /Chọt chul/i }));
+    await user.click(screen.getByRole('button', { name: /0:06/i }));
     expect(screen.getByRole('alert')).toHaveTextContent(/liền nhau/i);
   });
 
@@ -76,15 +96,15 @@ describe('PracticePanel', () => {
     });
 
     expect(scrollIntoView).toHaveBeenCalledWith({ behavior: 'smooth', block: 'center', inline: 'nearest' });
-    expect(scrollIntoView.mock.instances[0]).toBe(screen.getByRole('button', { name: /둘째 줄/i }));
+    expect(scrollIntoView.mock.instances[0]).toBe(screen.getByRole('button', { name: /0:04/i }));
   });
 
   it('distinguishes a selected line that is also playing', async () => {
     const user = userEvent.setup();
     render(<PracticePanel song={song} onBack={vi.fn()} />);
-    await user.click(screen.getByRole('button', { name: /첫 줄/i }));
+    await user.click(screen.getByRole('button', { name: /Chọt chul/i }));
     act(() => (playerProps.last?.onCurrentTime as (seconds: number) => void)(3));
-    const line = screen.getByRole('button', { name: /첫 줄/i });
+    const line = screen.getByRole('button', { name: /Chọt chul/i });
     expect(line).toHaveAttribute('aria-pressed', 'true');
     expect(within(line).getByText('Đang phát')).toBeInTheDocument();
     expect(within(line).getByText('Đã chọn')).toBeInTheDocument();
@@ -97,7 +117,7 @@ describe('PracticePanel', () => {
     const once = screen.getByRole('button', { name: 'Phát một lần' });
     expect(loop).toBeDisabled();
     expect(once).toBeDisabled();
-    await user.click(screen.getByRole('button', { name: /첫 줄/i }));
+    await user.click(screen.getByRole('button', { name: /Chọt chul/i }));
     expect(loop).toBeEnabled();
     expect(once).toBeEnabled();
     await user.click(loop);
@@ -111,10 +131,10 @@ describe('PracticePanel', () => {
   it('does not claim to loop after the last selected line is cleared', async () => {
     const user = userEvent.setup();
     render(<PracticePanel song={song} onBack={vi.fn()} />);
-    await user.click(screen.getByRole('button', { name: /첫 줄/i }));
+    await user.click(screen.getByRole('button', { name: /Chọt chul/i }));
     await user.click(screen.getByRole('button', { name: 'Lặp đoạn' }));
     expect(screen.getByText('Đang lặp đoạn đã chọn')).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: /첫 줄/i }));
+    await user.click(screen.getByRole('button', { name: /Chọt chul/i }));
     expect(screen.queryByText('Đang lặp đoạn đã chọn')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Lặp đoạn' })).toBeDisabled();
   });
@@ -141,7 +161,7 @@ describe('PracticePanel', () => {
     render(<PracticePanel song={song} onBack={vi.fn()} />);
     const list = screen.getByRole('group', { name: 'Các câu hát' });
     list.style.overflowY = 'auto';
-    const line = screen.getByRole('button', { name: /둘째 줄/i });
+    const line = screen.getByRole('button', { name: /0:04/i });
     Object.defineProperties(list, { clientHeight: { value: 400 }, scrollHeight: { value: 1000 }, offsetTop: { value: 0 } });
     Object.defineProperties(line, { offsetTop: { value: 500 }, clientHeight: { value: 100 } });
     const scrollTo = vi.fn();
@@ -159,7 +179,7 @@ describe('PracticePanel', () => {
     list.style.overflowY = 'auto';
     Object.defineProperties(list, { clientHeight: { value: 400 }, scrollHeight: { value: 400 } });
     act(() => (playerProps.last?.onCurrentTime as (seconds: number) => void)(5));
-    expect(screen.getByRole('button', { name: /둘째 줄/i })).toHaveAttribute('aria-current', 'true');
+    expect(screen.getByRole('button', { name: /0:04/i })).toHaveAttribute('aria-current', 'true');
     expect(scrollIntoView).not.toHaveBeenCalled();
   });
 });

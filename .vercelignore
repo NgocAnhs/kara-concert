@@ -6,5 +6,6 @@ dist
 .worktrees
 .env
 .env.*
+.secrets
 !.env.example
 *.tsbuildinfo

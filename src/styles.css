@@ -78,6 +78,8 @@ h1[tabindex]:focus-visible { outline: 2px solid currentColor; outline-offset: 6p
 .practice-tip strong { color: var(--ink); }
 .tip-decoration { font-size: 30px; font-weight: 850; margin-left: auto; color: var(--accent); letter-spacing: -1px; }
 .site-footer { display: flex; justify-content: space-between; gap: 16px; color: var(--muted); font-size: 12px; padding: 28px 0; }
+.import-link { margin: 20px 0 0; font-size: 14px; font-weight: 650; }
+.import-link a { color: var(--accent); }
 .notice, .empty-state { padding: 20px; margin: 20px 0 0; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); color: var(--muted); overflow-wrap: anywhere; }
 .notice-warning { color: var(--danger); background: var(--danger-bg); border-color: #e8b2bf; }
 .empty-state { padding: 36px 24px; text-align: center; }
@@ -85,6 +87,16 @@ h1[tabindex]:focus-visible { outline: 2px solid currentColor; outline-offset: 6p
 .empty-state p { margin: 0; font-size: 14px; }
 .loading-notice { display: flex; align-items: center; gap: 12px; }
 .loading-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--accent); }
+.import-shell { padding-top: 36px; padding-bottom: 36px; }
+.import-card { max-width: 680px; margin: auto; padding: 28px; border: 1px solid var(--line); border-radius: 24px; background: var(--surface); }
+.import-card h1 { margin-bottom: 20px; }
+.import-form { display: grid; gap: 10px; }
+.import-form label { color: var(--muted); font-size: 13px; font-weight: 650; }
+.import-form input { min-height: 48px; width: 100%; border: 1px solid var(--control-border); border-radius: 12px; padding: 10px 12px; color: var(--ink); background: var(--surface); }
+.import-form input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); outline: 0; }
+.import-help, .import-warning { margin: 0; font-size: 13px; color: var(--muted); }
+.import-warning { color: var(--danger); }
+.ai-notice { margin-top: 0; }
 
 /* Practice surfaces share the same tokens; layout is progressively enhanced. */
 .practice-shell { padding-top: 20px; padding-bottom: 24px; }
@@ -142,11 +154,9 @@ h1[tabindex]:focus-visible { outline: 2px solid currentColor; outline-offset: 6p
 .selected-label { font-weight: 650; }
 .active-label { display: inline-flex; gap: 5px; align-items: center; font-weight: 750; }
 .active-label i { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
-.lyric-korean { font-size: 19px; font-weight: 650; line-height: 1.6; }
 .lyric-viet-han { font-size: 15px; font-weight: 650; color: var(--accent); }
 .lyric-romanization { font-size: 13px; color: var(--muted); }
 .lyric-meaning { font-size: 14px; color: var(--muted); }
-.active-line { color: var(--accent); }
 @media (min-width: 1024px) {
   .panel-player { position: sticky; top: 24px; }
   .lyric-list { max-height: max(20rem, calc(100dvh - 19rem)); overflow-y: auto; overscroll-behavior-y: contain; }
@@ -194,6 +204,8 @@ h1[tabindex]:focus-visible { outline: 2px solid currentColor; outline-offset: 6p
   .practice-tip strong { display: block; margin-bottom: 4px; }
   .tip-decoration { display: none; }
   .site-footer { flex-direction: column; gap: 6px; padding-bottom: max(24px, env(safe-area-inset-bottom)); }
+  .import-shell { padding-top: 20px; padding-bottom: 20px; }
+  .import-card { padding: 20px 16px; border-radius: 20px; }
   .practice-shell { padding-top: 16px; padding-bottom: max(20px, env(safe-area-inset-bottom)); }
   .practice-topbar { padding-bottom: 14px; }
   .practice-topbar .brand { font-size: 13px; gap: 6px; }
