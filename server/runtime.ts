@@ -58,6 +58,7 @@ function runtimeImportDependencies(
     const gemini = createGeminiProvider({
       apiKey: config.geminiApiKey, model: config.geminiModel,
       deadlineAt: Number.POSITIVE_INFINITY,
+      onDiagnostic: (diagnostic) => console.error('GEMINI_PROVIDER_DIAGNOSTIC', JSON.stringify(diagnostic)),
     });
     initializedRunner = { fetchVideo: youtube.fetchVideo, transcribe: gemini.transcribe, enrich: gemini.enrich };
     return initializedRunner;
