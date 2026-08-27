@@ -33,6 +33,8 @@ export type ProviderDiagnostic = {
   event: 'NETWORK_ERROR' | 'HTTP_ERROR' | 'INVALID_JSON' | 'INVALID_RESPONSE' | 'INVALID_TRANSCRIPT' | 'INVALID_ENRICHMENT';
   httpStatus?: number;
   providerStatus?: string;
+  providerCode?: string;
+  invalidFields?: string[];
   finishReasons?: string[];
 };
 
@@ -50,6 +52,32 @@ function nonBlankString(value: unknown, maximum: number): value is string {
   return string(value, maximum) && /\S/u.test(value);
 }
 function finite(value: unknown): value is number { return typeof value === 'number' && Number.isFinite(value); }
+
+function providerErrorMetadata(error: unknown): Pick<ProviderDiagnostic, 'providerStatus' | 'providerCode' | 'invalidFields'> {
+  const root = object(error);
+  const status = typeof root?.status === 'string' && /^[A-Z][A-Z0-9_]{0,63}$/.test(root.status) ? root.status : undefined;
+  const code = typeof root?.code === 'string' && /^[A-Za-z][A-Za-z0-9_-]{0,63}$/.test(root.code) ? root.code : undefined;
+  const fields: string[] = [];
+  const addField = (value: unknown) => {
+    if (typeof value === 'string' && /^[A-Za-z0-9_][A-Za-z0-9_.\[\]-]{0,127}$/.test(value) && !fields.includes(value) && fields.length < 5) fields.push(value);
+  };
+  addField(root?.param);
+  if (Array.isArray(root?.details)) {
+    for (const detailValue of root.details) {
+      const detail = object(detailValue);
+      addField(detail?.field);
+      for (const key of ['fieldViolations', 'field_violations']) {
+        const violations = detail?.[key];
+        if (Array.isArray(violations)) for (const violation of violations) addField(object(violation)?.field);
+      }
+    }
+  }
+  return {
+    ...(status ? { providerStatus: status } : {}),
+    ...(code ? { providerCode: code } : {}),
+    ...(fields.length ? { invalidFields: fields } : {}),
+  };
+}
 
 function responseTelemetry(value: unknown): ProviderResponseTelemetry {
   const root = object(value);
@@ -188,9 +216,8 @@ export function createGeminiProvider({ apiKey, model, fetch: fetcher = globalThi
       let errorBody: unknown = {};
       try { errorBody = await response.json(); } catch { /* status is still useful */ }
       recordResponseTelemetry(errorBody);
-      const providerStatus = object(object(errorBody)?.error)?.status;
       recordDiagnostic({ event: 'HTTP_ERROR', httpStatus: response.status,
-        ...(typeof providerStatus === 'string' && /^[A-Z][A-Z0-9_]{0,63}$/.test(providerStatus) ? { providerStatus } : {}) });
+        ...providerErrorMetadata(object(errorBody)?.error) });
       if (response.status === 403 || response.status === 429) quota();
       transient();
     }

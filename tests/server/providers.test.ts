@@ -210,21 +210,34 @@ describe('Gemini provider', () => {
     }]);
   });
 
-  it('emits bounded Gemini HTTP diagnostics without provider messages or content', async () => {
+  it('emits bounded Gemini HTTP codes and field paths without provider messages or descriptions', async () => {
     const diagnostics: unknown[] = [];
     const provider = createGeminiProvider({
       apiKey: 'test-key',
       model: 'gemini-test',
       fetch: async () => jsonResponse({
-        error: { status: 'NOT_FOUND', message: 'sensitive provider detail' },
+        error: {
+          status: 'INVALID_ARGUMENT',
+          code: 'invalid_argument',
+          message: 'sensitive provider detail',
+          details: [{ fieldViolations: [
+            { field: 'response_format.schema', description: 'sensitive field detail' },
+            { field: 'unsafe field!', description: 'must not be retained' },
+          ] }],
+        },
       }, 404),
       onDiagnostic: (value) => diagnostics.push(value),
     });
 
     await expect(provider.transcribe(canonicalUrl, { signal: new AbortController().signal }))
       .rejects.toMatchObject({ code: 'PROVIDER_TRANSIENT' });
-    expect(diagnostics).toEqual([{ event: 'HTTP_ERROR', httpStatus: 404, providerStatus: 'NOT_FOUND' }]);
+    expect(diagnostics).toEqual([{
+      event: 'HTTP_ERROR', httpStatus: 404, providerStatus: 'INVALID_ARGUMENT',
+      providerCode: 'invalid_argument', invalidFields: ['response_format.schema'],
+    }]);
     expect(JSON.stringify(diagnostics)).not.toContain('sensitive provider detail');
+    expect(JSON.stringify(diagnostics)).not.toContain('sensitive field detail');
+    expect(JSON.stringify(diagnostics)).not.toContain('unsafe field');
   });
 
   it('distinguishes invalid Gemini response shape without logging response text', async () => {
