@@ -112,14 +112,28 @@ it('uses a separate derivation label for the IP hash and ignores client IP heade
   expect(hashClientIp('local-dev', token)).not.toBe(hashClientIp('local-dev', 'B'.repeat(43)));
 });
 
-it('never trusts forwarded headers on nonloopback or unverified deployed ingress', () => {
-  const req = request('POST', '{}', { 'x-vercel-forwarded-for': '198.51.100.1' });
+it('trusts only one Vercel-overwritten forwarded IP on verified deployed ingress', () => {
+  const req = request('POST', '{}', {
+    'x-forwarded-for': '198.51.100.1',
+    'x-real-ip': '198.51.100.2',
+    'x-vercel-forwarded-for': '198.51.100.3',
+  });
+  expect(createTrustedIp(config, { VERCEL: '1', VERCEL_ENV: 'production' })(req)).toBe('198.51.100.1');
+  expect(createTrustedIp(config, { VERCEL: '1', VERCEL_ENV: 'preview' })(req)).toBe('198.51.100.1');
+
   for (const env of [{ VERCEL_ENV: 'production' }, { VERCEL_ENV: 'preview' }, { NODE_ENV: 'production' }]) {
     expect(createTrustedIp({ ...config, localDev: true }, env)(req)).toBeNull();
   }
-  expect(createTrustedIp(config, { VERCEL: '1', VERCEL_ENV: 'production' })(req)).toBeNull();
   Object.defineProperty(req, 'socket', { value: { remoteAddress: '198.51.100.2' } });
   expect(createTrustedIp({ ...config, localDev: true }, {})(req)).toBeNull();
+});
+
+it('rejects missing, invalid, or multiple forwarded IP values on Vercel', () => {
+  const trustedIp = createTrustedIp(config, { VERCEL: '1', VERCEL_ENV: 'production' });
+  expect(trustedIp(request('POST'))).toBeNull();
+  expect(trustedIp(request('POST', '{}', { 'x-forwarded-for': 'not-an-ip' }))).toBeNull();
+  expect(trustedIp(request('POST', '{}', { 'x-forwarded-for': '198.51.100.1, 198.51.100.2' }))).toBeNull();
+  expect(trustedIp(request('POST', '{}', { 'x-forwarded-for': '2001:db8::1' }))).toBe('2001:db8::1');
 });
 
 it('keeps GET and DELETE available without database/provider credentials, but POST fails closed', async () => {
