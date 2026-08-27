@@ -1,12 +1,14 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, type ReactNode } from 'react';
 import { BrowserRouter, Link, Navigate, Route, Routes, useLocation, useNavigate, useParams } from 'react-router';
 import { Brand } from '../components/Brand';
 import { PracticePanel } from '../components/PracticePanel';
 import { SongLibrary } from '../components/SongLibrary';
+import { ImportPage } from '../features/import/ImportPage';
+import { ImportStatusPage } from '../features/import/ImportStatusPage';
 import type { Song } from '../domain/song';
 import { createSongRoutes } from '../domain/songRoutes';
 import { supabase } from '../lib/supabase';
-import { listPublishedSongs } from '../repositories/songRepository';
+import { useCatalog } from './useCatalog';
 
 export function App() {
   return <BrowserRouter><AppRoutes /></BrowserRouter>;
@@ -15,27 +17,34 @@ export function App() {
 type CatalogState = { songs: Song[] | null; error: string | null };
 
 function AppRoutes() {
-  const [songs, setSongs] = useState<Song[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!supabase) return;
-    let active = true;
-    listPublishedSongs(supabase).then((result) => {
-      if (active) setSongs(result);
-    }).catch((reason: unknown) => {
-      if (active) setError(reason instanceof Error ? reason.message : 'Could not load published songs.');
-    });
-    return () => { active = false; };
-  }, []);
+  const { songs, error, reload } = useCatalog(supabase);
+  const navigate = useNavigate();
+  const onCompleted = useCallback(async (songId: string, signal?: AbortSignal) => {
+    try {
+      const catalog = await reload(signal);
+      if (signal?.aborted) return false;
+      const route = createSongRoutes(catalog).find((entry) => entry.song.id === songId);
+      if (!route) return false;
+      navigate(route.pathname);
+      return true;
+    } catch { return false; }
+  }, [navigate, reload]);
 
   return (
     <Routes>
       <Route path="/" element={<LibraryPage songs={songs} error={error} />} />
+      <Route path="/import" element={<ImportPage onJob={(jobId) => navigate(`/imports/${encodeURIComponent(jobId)}`)} onCompleted={onCompleted} />} />
+      <Route path="/imports/:jobId" element={<ImportStatusRoute onCompleted={onCompleted} />} />
       <Route path="/practice/:songKey" element={<PracticePage songs={songs} error={error} />} />
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
   );
+}
+
+function ImportStatusRoute({ onCompleted }: { onCompleted(songId: string, signal?: AbortSignal): Promise<boolean> }) {
+  const { jobId } = useParams();
+  if (!jobId) return <NotFoundPage />;
+  return <ImportStatusPage jobId={jobId} onCompleted={onCompleted} />;
 }
 
 function CatalogNotice({ songs, error }: CatalogState) {
@@ -106,6 +115,7 @@ function LibraryPage({ songs, error }: CatalogState) {
         <span className="hero-sticker" aria-hidden="true">SING IT YOUR WAY</span>
       </section>
       <CatalogNotice songs={songs} error={error} />
+      <p className="import-link"><Link to="/import">Thêm bài từ YouTube</Link></p>
       {supabase && songs && <SongLibrary songs={songs} onPractice={(song) => {
         const route = routes.find((entry) => entry.song.id === song.id);
         if (route) navigate(route.pathname);

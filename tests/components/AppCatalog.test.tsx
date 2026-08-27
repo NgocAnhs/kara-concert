@@ -2,6 +2,7 @@ import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Song } from '../../src/domain/song';
+import { useCatalog } from '../../src/app/useCatalog';
 
 const catalog = vi.hoisted(() => ({ list: vi.fn() }));
 vi.mock('../../src/lib/supabase', () => ({ supabase: {} }));
@@ -14,6 +15,12 @@ const song: Song = {
   id: '1', title: 'A practice song', youtubeUrl: 'https://youtu.be/abc123',
   lines: [{ id: 'line', korean: '첫 줄', startSeconds: 2, endSeconds: 4, displayOrder: 0 }],
 };
+const probeClient = {} as never;
+
+function CatalogReloadProbe() {
+  const { songs, reload } = useCatalog(probeClient);
+  return <><button type="button" onClick={() => { void reload().catch(() => undefined); }}>Tải lại catalog</button><p>{songs?.map((entry) => entry.title).join(',') ?? 'Đang tải'}</p></>;
+}
 
 describe('App catalog navigation', () => {
   beforeEach(() => {
@@ -175,5 +182,56 @@ describe('App catalog navigation', () => {
     await screen.findByRole('heading', { name: /chưa có bài hát/i });
     expect(screen.getByRole('status')).toHaveTextContent(/chưa có bài hát/i);
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  it('keeps the newest catalog reload when an earlier request resolves later', async () => {
+    const user = userEvent.setup();
+    let resolveInitial!: (songs: Song[]) => void;
+    let resolveReload!: (songs: Song[]) => void;
+    catalog.list
+      .mockReturnValueOnce(new Promise<Song[]>((resolve) => { resolveInitial = resolve; }))
+      .mockReturnValueOnce(new Promise<Song[]>((resolve) => { resolveReload = resolve; }));
+
+    render(<CatalogReloadProbe />);
+    await waitFor(() => expect(catalog.list).toHaveBeenCalledTimes(1));
+    await user.click(screen.getByRole('button', { name: 'Tải lại catalog' }));
+    expect(catalog.list).toHaveBeenCalledTimes(2);
+    await act(async () => resolveReload([{ ...song, title: 'Newest catalog' }]));
+    expect(screen.getByText('Newest catalog')).toBeInTheDocument();
+    await act(async () => resolveInitial([{ ...song, title: 'Stale catalog' }]));
+    expect(screen.getByText('Newest catalog')).toBeInTheDocument();
+    expect(screen.queryByText('Stale catalog')).not.toBeInTheDocument();
+  });
+
+  it('does not let an unmounted catalog request overwrite a remounted public library', async () => {
+    let resolveOld!: (songs: Song[]) => void;
+    catalog.list
+      .mockReturnValueOnce(new Promise<Song[]>((resolve) => { resolveOld = resolve; }))
+      .mockResolvedValueOnce([{ ...song, title: 'Current catalog' }]);
+
+    const oldView = render(<App />);
+    oldView.unmount();
+    render(<App />);
+    expect(await screen.findByText('Current catalog')).toBeInTheDocument();
+    await act(async () => resolveOld([{ ...song, title: 'Old catalog' }]));
+    expect(screen.getByText('Current catalog')).toBeInTheDocument();
+    expect(screen.queryByText('Old catalog')).not.toBeInTheDocument();
+  });
+
+  it('keeps the guest catalog after an import logout and returning to the library', async () => {
+    const user = userEvent.setup();
+    catalog.list.mockResolvedValue([song]);
+    vi.stubGlobal('fetch', vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify({ unlocked: true }), { status: 200, headers: { 'Content-Type': 'application/json' } }))
+      .mockResolvedValueOnce(new Response(null, { status: 204 })));
+
+    render(<App />);
+    await user.click(await screen.findByRole('link', { name: 'Thêm bài từ YouTube' }));
+    await user.click(await screen.findByRole('button', { name: 'Đóng quyền thêm bài' }));
+    await screen.findByLabelText('Mã truy cập');
+    act(() => window.history.back());
+
+    expect(await screen.findByRole('button', { name: `Luyện hát ${song.title}` })).toBeInTheDocument();
+    expect(catalog.list).toHaveBeenCalledTimes(1);
   });
 });

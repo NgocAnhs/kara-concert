@@ -39,7 +39,7 @@ export function SongLibrary({ songs, onPractice }: SongLibraryProps) {
         {visibleSongs.map((song, index) => (
           <li key={song.id} className={`song-card cover-variant-${index % 3}`}>
             <div className="song-cover" aria-hidden="true"><span>{song.title.slice(0, 2).toUpperCase()}</span><i /></div>
-            <div className="song-card-body"><p className="song-card-kicker">Sẵn sàng lên giọng</p><h3>{song.title}</h3><p className="song-card-copy">{song.lines.length > 0 ? `${song.lines.length} câu hát để luyện` : 'Khám phá bài hát'}</p></div>
+            <div className="song-card-body"><p className="song-card-kicker">{song.source === 'ai' ? 'AI tạo — lời và mốc thời gian có thể chưa chính xác' : 'Sẵn sàng lên giọng'}</p><h3>{song.title}</h3><p className="song-card-copy">{song.lines.length > 0 ? `${song.lines.length} câu hát để luyện` : 'Khám phá bài hát'}</p></div>
             <button className="song-play" type="button" aria-label={`Luyện hát ${song.title}`} onClick={() => onPractice(song)}>
               <span className="play-symbol" aria-hidden="true" />
             </button>

@@ -3,6 +3,9 @@ dist
 .worktrees
 .env
 .env.local
+.secrets/
 *.tsbuildinfo
 .vercel
 .superpowers/
+supabase/.temp/
+supabase/.branches/

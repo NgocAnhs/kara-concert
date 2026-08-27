@@ -3,7 +3,7 @@ import { z } from 'zod';
 const lyricLineSchema = z
   .object({
     id: z.string().min(1),
-    korean: z.string().trim().min(1),
+    korean: z.string().refine((value) => value.trim().length > 0, 'A lyric line must not be blank'),
     viet_han: z.string().nullable().optional().transform((value) => value ?? undefined),
     romanization: z.string().nullable().optional().transform((value) => value ?? undefined),
     meaning: z.string().nullable().optional().transform((value) => value ?? undefined),
@@ -20,6 +20,9 @@ const songRowSchema = z.object({
   id: z.string().min(1),
   title: z.string().trim().min(1),
   youtube_url: z.string().url(),
+  source: z.enum(['manual', 'ai']).optional().default('manual'),
+  ai_model: z.string().nullable().optional().transform((value) => value ?? undefined),
+  prompt_version: z.string().nullable().optional().transform((value) => value ?? undefined),
   lyric_lines: z.array(lyricLineSchema),
 });
 
@@ -38,6 +41,9 @@ export type Song = {
   id: string;
   title: string;
   youtubeUrl: string;
+  source?: 'manual' | 'ai';
+  aiModel?: string;
+  promptVersion?: string;
   lines: LyricLine[];
 };
 
@@ -46,6 +52,9 @@ export function parsePublishedSongs(value: unknown): Song[] {
     id: song.id,
     title: song.title,
     youtubeUrl: song.youtube_url,
+    source: song.source,
+    aiModel: song.ai_model,
+    promptVersion: song.prompt_version,
     lines: song.lyric_lines
       .map((line) => ({
         id: line.id,
