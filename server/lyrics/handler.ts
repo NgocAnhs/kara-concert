@@ -36,7 +36,7 @@ export function createLyricEditHandler(deps: LyricEditDependencies) {
       const parsed = updateSchema.safeParse(await readJsonBody(req, 64 * 1024));
       if (!parsed.success || !validTimestamps(parsed.data.lines)) throw new HttpError(400, 'INVALID_LYRIC_TIMESTAMPS');
       const result = await deps.updateLyrics(songId, parsed.data.lines);
-      if (!result.updated) throw new HttpError(result.code === 'SONG_NOT_FOUND' ? 404 : result.code === 'INVALID_LYRIC_TIMESTAMPS' ? 400 : 503, result.code);
+      if (result.updated === false) throw new HttpError(result.code === 'SONG_NOT_FOUND' ? 404 : result.code === 'INVALID_LYRIC_TIMESTAMPS' ? 400 : 503, result.code);
       sendJson(res, 200, { updated: true });
     } catch (error) {
       sendError(res, error, deps.config);
