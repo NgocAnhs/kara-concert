@@ -33,6 +33,8 @@ insert into public.import_jobs(id,video_id,status,stage,admitted_at,deadline_at)
 values ('72000000-0000-4000-8000-000000000010','zzzzzzzzzzz','failed','failed',clock_timestamp()-interval '8 days',clock_timestamp()-interval '8 days');
 insert into public.import_attempts(job_id,admitted_at) values
  ('72000000-0000-4000-8000-000000000010',clock_timestamp()-interval '8 days');
+insert into public.gemini_outputs(job_id,stage,http_status,response,created_at) values
+ ('72000000-0000-4000-8000-000000000010','enrichment',200,'{"status":"completed"}'::jsonb,clock_timestamp()-interval '8 days');
 insert into public.access_attempts(ip_hash,attempted_at) values ('old-access',clock_timestamp()-interval '25 hours');
 
 create temp table maintenance_lease as select * from public.begin_maintenance();
@@ -48,6 +50,8 @@ select ok(not exists(select 1 from public.youtube_metadata where video_id in ('c
 select ok((select bool_and(needs_reprocess) from public.songs where youtube_video_id in ('ccccccccccc','ddddddddddd')),
   'metadata deletion atomically makes affected AI songs require reprocessing');
 select is((select count(*) from public.import_jobs where id='72000000-0000-4000-8000-000000000010'), 0::bigint, 'jobs and attempts older than seven days are purged');
+select is((select count(*) from public.gemini_outputs where job_id='72000000-0000-4000-8000-000000000010'), 0::bigint,
+  'raw Gemini responses are purged with their seven-day job');
 select is((select count(*) from public.access_attempts where ip_hash='old-access'), 0::bigint, 'access attempts older than 24 hours are purged');
 
 select ok(public.apply_metadata_refresh((select lease_token from maintenance_lease),

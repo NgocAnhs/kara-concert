@@ -23,7 +23,7 @@ export function LyricLineButton({ line, selected, active, onSelect, buttonRef }:
         <span className="lyric-position"><span>{String(line.displayOrder + 1).padStart(2, '0')}</span><span aria-hidden="true">·</span><span>{timestamp}</span></span>
         <span className="lyric-states">{selected && <span className="selected-label">Đã chọn</span>}{active && <span className="active-label"><i aria-hidden="true" />Đang phát</span>}</span>
       </span>
-      {line.vietHan && <small className="lyric-viet-han">{line.vietHan}</small>}
+      {line.vietHan && <small className="lyric-viet-han"><span className="lyric-field-label">Cách đọc tiếng Việt</span>{line.vietHan}</small>}
       {line.romanization && <small className="lyric-romanization">{line.romanization}</small>}
       {line.meaning && <small className="lyric-meaning">{line.meaning}</small>}
     </button>

@@ -28,6 +28,10 @@ const publicRow = {
 };
 
 describe('import repository', () => {
+  it('records the Vietnamese-pronunciation prompt revision', () => {
+    expect(IMPORT_PROMPT_VERSION).toBe('youtube-auto-import-v2');
+  });
+
   it('maps a created admission while keeping the raw lease out of PublicJob', async () => {
     const mock = rpcClient([{ data: [{ kind: 'created', ...publicRow, lease_token: '20000000-0000-4000-8000-000000000002', retry_after_seconds: null }], error: null }]);
     const repository = createImportRepository(mock.client, { aiModel: 'gemini-test' });
@@ -88,6 +92,23 @@ describe('import repository', () => {
       jobId: publicRow.job_id, status: 'checking_video', stage: 'checking_video', deadlineAt: publicRow.deadline_at,
     });
     expect(mock.calls.map((call) => call.name)).toEqual(['advance_import', 'advance_import', 'fail_import', 'read_import']);
+  });
+
+  it('stores a raw Gemini response through the job lease fence', async () => {
+    const lease = { jobId: publicRow.job_id, leaseToken: '20000000-0000-4000-8000-000000000002', deadlineAt: publicRow.deadline_at };
+    const response = { status: 'completed', steps: [{ type: 'model_output' }] };
+    const mock = rpcClient([{ data: true, error: null }]);
+    const repository = createImportRepository(mock.client, { aiModel: 'gemini-test' });
+
+    await expect(repository.recordGeminiOutput(lease, 'enrichment', 200, response)).resolves.toBeUndefined();
+
+    expect(mock.calls).toEqual([{ name: 'record_gemini_output', args: {
+      p_job_id: lease.jobId,
+      p_lease_token: lease.leaseToken,
+      p_stage: 'enrichment',
+      p_http_status: 200,
+      p_response: response,
+    } }]);
   });
 
   it.each([true, false, 0, '', [], {}])('rejects malformed fail_import response %#', async (data) => {

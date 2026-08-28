@@ -78,7 +78,7 @@ If the network already exists, inspect its `host_binding_ipv4` option and use it
 
 The test runner captures local CLI status without printing keys. It first inspects Docker context metadata locally, requires a Unix socket endpoint, and pins that socket for all CLI calls; SSH/TCP Docker endpoints are refused without connecting to them. It rejects arguments (including `--linked`/`--db-url`), non-loopback URLs, URL query overrides, and unexpected database names/ports. It verifies that the CLI recognizes the existing migration filenames, runs `migration up --local` without resetting the database, executes pgTAP with actual database roles, and checks concurrent counters. A uniquely named scratch database tests the original migration files, safe URL backfill, duplicate rollback, and catalog preservation; only that newly created scratch database is deleted afterwards. Docker/setup failures are test failures, never substituted with mocked permission checks.
 
-Migration `005_import_storage.sql` leaves manual titles, URLs, lyrics, and publication status intact. Invalid legacy video URLs retain a null video ID. Duplicate valid video IDs abort the entire migration for manual review; no songs are deleted or merged. Internal import tables have RLS and no client policies. The existing manual published catalog policies remain unchanged; administrative RPCs are backend-only. Migrations `007_metadata_visibility.sql` and `008_maintenance.sql` enforce AI metadata visibility and retention/heartbeat behavior; keep those controls active even when imports are disabled. Do not apply migrations to a remote database as part of local tests.
+Migration `005_import_storage.sql` leaves manual titles, URLs, lyrics, and publication status intact. Invalid legacy video URLs retain a null video ID. Duplicate valid video IDs abort the entire migration for manual review; no songs are deleted or merged. Internal import tables have RLS and no client policies. The existing manual published catalog policies remain unchanged; administrative RPCs are backend-only. Migrations `007_metadata_visibility.sql` and `008_maintenance.sql` enforce AI metadata visibility and retention/heartbeat behavior. Migration `009_gemini_outputs.sql` retains each raw Gemini JSON response before validation, behind the active job lease and backend-only permissions. Keep those controls active even when imports are disabled. Do not apply migrations to a remote database as part of local tests.
 
 ### Validate the import feature locally
 
@@ -112,11 +112,20 @@ Generate access and cron credentials independently with a password manager or se
 
 The daily maintenance endpoint is `GET /api/internal/maintenance` and accepts only `Authorization: Bearer <CRON_SECRET>`. Vercel Cron is scheduled for 02:00 UTC. Before enabling imports, run one authorized maintenance invocation, verify the database heartbeat, prove that a heartbeat older than 48 hours closes admission, and configure an external alert channel for missed/failed runs. Do not put the bearer value in a URL, command history, ticket, or log.
 
+For provider debugging, query `public.gemini_outputs` by the exact job ID in the Supabase SQL Editor. It stores one transcription and one enrichment response, including failed validation output, and cascades away with the import job after seven days. The table is not exposed to browser roles; do not copy full lyric responses into logs or tickets.
+
+```sql
+select stage, http_status, response, created_at
+from public.gemini_outputs
+where job_id = '<job-id>'
+order by created_at;
+```
+
 For an incident or rollback, set `IMPORT_ENABLED=false` and release that configuration first. Keep maintenance, retention cleanup, metadata visibility/RLS, and existing AI/manual songs intact; do not delete prior imports or roll back schema to stop new admissions. Revoke/rotate a suspected credential, inspect provider/Vercel/Supabase audit data without copying secrets, and re-enable only after the failed gate has fresh evidence.
 
 ## Existing Supabase project and migrations
 
-Use the existing Supabase project; do not create a replacement project for this application. With explicit owner authorization, first verify the project reference and remote migration history, then apply migrations `001` through `008` in order through the normal migration workflow. Do not run only `001` manually in the SQL Editor, and do not use `supabase db reset` against a linked or remote project.
+Use the existing Supabase project; do not create a replacement project for this application. With explicit owner authorization, first verify the project reference and remote migration history, then apply migrations `001` through `009` in order through the normal migration workflow. Do not run only `001` manually in the SQL Editor, and do not use `supabase db reset` against a linked or remote project.
 
 Confirm the applied migration history and effective backend/public privileges before enabling imports. Existing manual songs and lyrics stay intact; use the existing catalog workflow for new manual songs, keep unfinished songs as `draft`, and publish only when ready. The public site reads only eligible published songs and lyrics.
 

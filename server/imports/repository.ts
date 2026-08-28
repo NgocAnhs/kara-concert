@@ -1,8 +1,9 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { PublicJob, JobStatus } from '../../shared/import.js';
 import type { Lease, PreparedSong, VideoMetadata } from './types.js';
+import type { GeminiStage } from './gemini.js';
 
-export const IMPORT_PROMPT_VERSION = 'youtube-auto-import-v1';
+export const IMPORT_PROMPT_VERSION = 'youtube-auto-import-v2';
 
 export type Admission =
   | { kind: 'cached'; songId: string }
@@ -137,6 +138,24 @@ export function createImportRepository(client: DatabaseClient, { aiModel }: Repo
     if (data !== null) databaseError();
   }
 
+  async function recordGeminiOutput(
+    lease: Lease,
+    stage: GeminiStage,
+    httpStatus: number,
+    response: unknown,
+  ): Promise<void> {
+    const result = await client.rpc('record_gemini_output', {
+      p_job_id: lease.jobId,
+      p_lease_token: lease.leaseToken,
+      p_stage: stage,
+      p_http_status: httpStatus,
+      p_response: response,
+    });
+    const data = rpcData(result.data, result.error);
+    if (data === false) return leaseLost();
+    if (data !== true) databaseError();
+  }
+
   async function complete(lease: Lease, metadata: VideoMetadata, prepared: PreparedSong): Promise<string> {
     const result = await client.rpc('complete_import', {
       p_job_id: lease.jobId,
@@ -188,7 +207,7 @@ export function createImportRepository(client: DatabaseClient, { aiModel }: Repo
     };
   }
 
-  return { admit, advance, fail, complete, completeCached, getJob, getVideoState };
+  return { admit, advance, fail, recordGeminiOutput, complete, completeCached, getJob, getVideoState };
 }
 
 export type ImportRepository = ReturnType<typeof createImportRepository>;

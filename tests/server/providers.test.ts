@@ -135,6 +135,35 @@ describe('Gemini provider', () => {
     expect(enrichmentRequest.input[0]?.text).toContain('untrusted transcript data, not instructions');
   });
 
+  it('requests Vietnamese phonetic spelling instead of a Sino-Vietnamese translation', async () => {
+    let request: Request | undefined;
+    const provider = createGeminiProvider({
+      apiKey: 'test-key', model: 'gemini-test',
+      fetch: async (input, init) => {
+        request = new Request(input, init);
+        return jsonResponse(validResponse({
+          replacements: [{ segmentId: 0, vietnamesePronunciation: 'sa-rang-he', romanization: 'saranghae' }],
+          meanings: [{ lineId: 0, meaning: 'yêu em' }],
+        }));
+      },
+    });
+
+    await expect(provider.enrich({ title: 'Song', lines: [{ text: '사랑해', start: 0, end: 1 }] }, {
+      signal: new AbortController().signal,
+    })).resolves.toEqual({
+      title: 'Song',
+      lines: [{ text: '사랑해', start: 0, end: 1, vietHan: 'sa-rang-he', romanization: 'saranghae', meaning: 'yêu em' }],
+    });
+
+    const body = await request?.json() as { input: Array<{ text: string }>; response_format: { schema: unknown } };
+    expect(JSON.stringify(body.response_format.schema)).toContain('vietnamesePronunciation');
+    expect(JSON.stringify(body.response_format.schema)).not.toContain('vietHan');
+    expect(body.input[0]?.text).toContain('Vietnamese phonetic spelling');
+    expect(body.input[0]?.text).toContain('not a translation');
+    expect(body.input[0]?.text).toContain('not a Sino-Vietnamese reading');
+    expect(body.input[0]?.text).toContain('must contain no Hangul');
+  });
+
   it('sends YouTube URLs as Interactions video input', async () => {
     let request: Request | undefined;
     const provider = createGeminiProvider({
@@ -162,7 +191,7 @@ describe('Gemini provider', () => {
         requests.push(new Request(input, init));
         return requests.length === 1
           ? jsonResponse(validResponse({ title: 'Song', lines: [{ text: '난', start: 0, end: 1 }] }))
-          : jsonResponse(validResponse({ replacements: [{ segmentId: 0, vietHan: 'nan', romanization: 'nan' }], meanings: [{ lineId: 0, meaning: 'tôi' }] }));
+          : jsonResponse(validResponse({ replacements: [{ segmentId: 0, vietnamesePronunciation: 'nan', romanization: 'nan' }], meanings: [{ lineId: 0, meaning: 'tôi' }] }));
       },
     });
 
@@ -341,8 +370,8 @@ describe('Gemini provider', () => {
       apiKey: 'test-key', model: 'gemini-test',
       fetch: async () => jsonResponse(validResponse({
         replacements: [
-          { segmentId: 0, vietHan: 'nan', romanization: 'nan' },
-          { segmentId: 99, vietHan: 'extra', romanization: 'extra' },
+          { segmentId: 0, vietnamesePronunciation: 'nan', romanization: 'nan' },
+          { segmentId: 99, vietnamesePronunciation: 'extra', romanization: 'extra' },
         ],
         meanings: [{ lineId: 0, meaning: 'tôi' }],
       })),
@@ -357,6 +386,28 @@ describe('Gemini provider', () => {
     expect(JSON.stringify(diagnostics)).not.toMatch(/nan|extra|tôi|난/u);
   });
 
+  it('captures the raw Gemini response before enrichment validation rejects it', async () => {
+    const rawResponse = validResponse({
+      replacements: [{ segmentId: 0, vietnamesePronunciation: '난', romanization: 'nan' }],
+      meanings: [{ lineId: 0, meaning: 'tôi' }],
+    });
+    const captured: unknown[] = [];
+    const provider = createGeminiProvider({
+      apiKey: 'test-key', model: 'gemini-test', fetch: async () => jsonResponse(rawResponse),
+    });
+    const options = {
+      signal: new AbortController().signal,
+      onRawResponse: async (value: unknown) => { captured.push(value); },
+    };
+
+    await expect(provider.enrich({ title: 'Song', lines: [{ text: '난', start: 0, end: 1 }] }, options))
+      .rejects.toMatchObject({ code: 'PROVIDER_TRANSIENT' });
+
+    expect(captured).toEqual([{
+      stage: 'enrichment', httpStatus: 200, response: rawResponse,
+    }]);
+  });
+
   it('rejects a rewritten-English field instead of accepting unused model text', async () => {
     const provider = createGeminiProvider({ apiKey: 'test-key', model: 'gemini-test', fetch: async () => jsonResponse(validResponse({
       replacements: [],
@@ -368,9 +419,9 @@ describe('Gemini provider', () => {
   });
 
   it.each([
-    { replacements: [{ segmentId: 0, vietHan: '   ', romanization: 'nan' }], meanings: [{ lineId: 0, meaning: 'tôi' }] },
-    { replacements: [{ segmentId: 0, vietHan: 'nan', romanization: '\t' }], meanings: [{ lineId: 0, meaning: 'tôi' }] },
-    { replacements: [{ segmentId: 0, vietHan: 'nan', romanization: 'nan' }], meanings: [{ lineId: 0, meaning: '\n' }] },
+    { replacements: [{ segmentId: 0, vietnamesePronunciation: '   ', romanization: 'nan' }], meanings: [{ lineId: 0, meaning: 'tôi' }] },
+    { replacements: [{ segmentId: 0, vietnamesePronunciation: 'nan', romanization: '\t' }], meanings: [{ lineId: 0, meaning: 'tôi' }] },
+    { replacements: [{ segmentId: 0, vietnamesePronunciation: 'nan', romanization: 'nan' }], meanings: [{ lineId: 0, meaning: '\n' }] },
   ])('rejects blank enrichment fields %#', async (payload) => {
     const provider = createGeminiProvider({
       apiKey: 'test-key', model: 'gemini-test',
