@@ -22,7 +22,7 @@ describe('PATCH /api/songs/:id/lyrics', () => {
   });
 
   it('allows a complete lyric update with overlapping ranges and passes it to the repository', async () => {
-    const updateLyrics = vi.fn(async () => true);
+    const updateLyrics = vi.fn(async () => ({ updated: true } as const));
     const out = response();
     const req = request('PATCH', JSON.stringify({ lines: [
       { id: '20000000-0000-4000-8000-000000000001', startSeconds: 1, endSeconds: 3 },
@@ -48,9 +48,21 @@ describe('PATCH /api/songs/:id/lyrics', () => {
     const out = response();
     const req = request('PATCH', JSON.stringify({ lines }), { cookie, origin: 'https://app.test' }); req.query = { id: songId };
 
-    await createLyricEditHandler({ config, updateLyrics: async () => true, nowSeconds: () => 1000 })(req, out.res);
+    await createLyricEditHandler({ config, updateLyrics: async () => ({ updated: true }), nowSeconds: () => 1000 })(req, out.res);
 
     expect(out.status).toBe(200);
+  });
+
+  it('reports a distinct error when the database rejects a lyric update', async () => {
+    const out = response();
+    const req = request('PATCH', JSON.stringify({ lines: [
+      { id: '20000000-0000-4000-8000-000000000001', startSeconds: 1, endSeconds: 3 },
+    ] }), { cookie, origin: 'https://app.test' }); req.query = { id: songId };
+
+    await createLyricEditHandler({ config, updateLyrics: async () => ({ updated: false, code: 'INVALID_LYRIC_TIMESTAMPS' }), nowSeconds: () => 1000 })(req, out.res);
+
+    expect(out.status).toBe(400);
+    expect(out.json()).toEqual({ error: 'INVALID_LYRIC_TIMESTAMPS' });
   });
 
   it('rejects duplicate start timestamps before the repository is called', async () => {

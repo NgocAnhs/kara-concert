@@ -26,6 +26,7 @@ function timestampSaveError(error: unknown): string {
   if (code === 'ACCESS_REQUIRED') return 'Phiên chỉnh sửa đã hết hạn. Hãy mở lại quyền bằng token import rồi thử lại.';
   if (code === 'INVALID_LYRIC_TIMESTAMPS') return 'Timestamp không hợp lệ. Hãy kiểm tra các câu được báo lỗi.';
   if (code === 'BODY_TOO_LARGE') return 'Bài hát có quá nhiều câu để lưu trong một lần. Hãy thử lại sau.';
+  if (code === 'LYRIC_UPDATE_FAILED') return 'Máy chủ chưa thể lưu timestamp. Hãy thử lại sau khi migration hoàn tất.';
   return 'Không thể lưu chỉnh sửa. Hãy kiểm tra quyền truy cập và thử lại.';
 }
 

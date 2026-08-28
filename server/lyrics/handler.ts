@@ -10,10 +10,11 @@ const timestampSchema = z.object({
   endSeconds: z.number().finite().nonnegative(),
 }).strict().refine((line) => line.endSeconds > line.startSeconds);
 const updateSchema = z.object({ lines: z.array(timestampSchema).min(1).max(500) }).strict();
+export type LyricUpdateResult = { updated: true } | { updated: false; code: 'SONG_NOT_FOUND' | 'INVALID_LYRIC_TIMESTAMPS' | 'LYRIC_UPDATE_FAILED' };
 
 export type LyricEditDependencies = {
   config: ServerConfig | undefined;
-  updateLyrics(songId: string, lines: z.infer<typeof timestampSchema>[]): Promise<boolean>;
+  updateLyrics(songId: string, lines: z.infer<typeof timestampSchema>[]): Promise<LyricUpdateResult>;
   nowSeconds?: () => number;
 };
 
@@ -34,7 +35,8 @@ export function createLyricEditHandler(deps: LyricEditDependencies) {
       if (typeof songId !== 'string' || !UUID.test(songId)) throw new HttpError(404, 'SONG_NOT_FOUND');
       const parsed = updateSchema.safeParse(await readJsonBody(req, 64 * 1024));
       if (!parsed.success || !validTimestamps(parsed.data.lines)) throw new HttpError(400, 'INVALID_LYRIC_TIMESTAMPS');
-      if (!await deps.updateLyrics(songId, parsed.data.lines)) throw new HttpError(404, 'SONG_NOT_FOUND');
+      const result = await deps.updateLyrics(songId, parsed.data.lines);
+      if (!result.updated) throw new HttpError(result.code === 'SONG_NOT_FOUND' ? 404 : result.code === 'INVALID_LYRIC_TIMESTAMPS' ? 400 : 503, result.code);
       sendJson(res, 200, { updated: true });
     } catch (error) {
       sendError(res, error, deps.config);
