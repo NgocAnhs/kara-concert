@@ -29,7 +29,7 @@ const publicRow = {
 
 describe('import repository', () => {
   it('records the Vietnamese-pronunciation prompt revision', () => {
-    expect(IMPORT_PROMPT_VERSION).toBe('youtube-auto-import-v2');
+    expect(IMPORT_PROMPT_VERSION).toBe('youtube-auto-import-v3');
   });
 
   it('maps a created admission while keeping the raw lease out of PublicJob', async () => {
