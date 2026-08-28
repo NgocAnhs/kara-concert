@@ -135,6 +135,32 @@ describe('YouTube import flow', () => {
     expect(fetchMock.mock.calls.filter(([url, init]) => url === '/api/imports' && (init as RequestInit | undefined)?.method === 'POST')).toHaveLength(1);
   });
 
+  it('returns to the library when browser Back is used from import status', async () => {
+    const user = userEvent.setup();
+    const fetchMock = vi.mocked(fetch);
+    window.history.replaceState(null, '', '/');
+    fetchMock
+      .mockResolvedValueOnce(json(200, { unlocked: true, expiresAt: 123 }))
+      .mockResolvedValueOnce(json(202, {
+        jobId: '10000000-0000-4000-8000-000000000001', status: 'checking_video', statusUrl: '/api/imports/10000000-0000-4000-8000-000000000001',
+      }))
+      .mockResolvedValueOnce(json(200, { unlocked: true, expiresAt: 123 }))
+      .mockResolvedValueOnce(json(200, {
+        jobId: '10000000-0000-4000-8000-000000000001', status: 'checking_video', stage: 'checking_video', deadlineAt: '2026-08-27T10:04:00.000Z',
+      }));
+
+    render(<App />);
+    await user.click(await screen.findByRole('link', { name: 'Thêm bài từ YouTube' }));
+    await user.type(await screen.findByLabelText('Liên kết YouTube'), 'https://youtu.be/1CTced9CMMk');
+    await user.click(screen.getByRole('button', { name: 'Thêm bài' }));
+    await waitFor(() => expect(window.location.pathname).toBe('/imports/10000000-0000-4000-8000-000000000001'));
+
+    act(() => window.history.back());
+
+    await waitFor(() => expect(window.location.pathname).toBe('/'));
+    expect(await screen.findByRole('searchbox', { name: 'Tìm bài hát' })).toBeInTheDocument();
+  });
+
   it('explains the concurrent admission limit with its server retry delay', async () => {
     const user = userEvent.setup();
     vi.mocked(fetch)
