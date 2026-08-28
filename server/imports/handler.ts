@@ -33,7 +33,7 @@ function sendAdmission(res: VercelResponse, admission: Exclude<Admission, { kind
 }
 
 function rejectAdmission(res: VercelResponse, admission: Extract<Admission, { kind: 'rejected' }>): void {
-  if ((admission.code === 'DAILY_LIMIT' || admission.code === 'ACTIVE_LIMIT')
+  if (admission.code === 'ACTIVE_LIMIT'
     && Number.isSafeInteger(admission.retryAfterSeconds) && admission.retryAfterSeconds! > 0) {
     res.setHeader('Retry-After', String(admission.retryAfterSeconds));
     throw new HttpError(429, admission.code);

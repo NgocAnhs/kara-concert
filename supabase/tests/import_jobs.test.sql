@@ -324,14 +324,14 @@ select gen_random_uuid(), 'quota' || lpad(n::text,6,'0'), 'failed','failed',cloc
 from generate_series(1,20) n;
 insert into public.import_attempts(job_id,admitted_at)
 select id,admitted_at from public.import_jobs;
-select results_eq($$select error_code from public.admit_import('quota000021')$$, array['DAILY_LIMIT'::text],
-  'rolling 24 hour attempt 21 is rejected');
+select results_eq($$select kind from public.admit_import('quota000021')$$, array['created'::text],
+  'rolling 24 hour attempt 21 is admitted');
 select results_eq($$select kind from public.admit_import('manual00001')$$, array['cached'::text],
-  'cached song remains available after quota is exhausted');
+  'cached song remains available after more than twenty attempts');
 insert into public.import_jobs(id,video_id,status,stage,lease_token,deadline_at,admitted_at)
 values ('52000000-0000-4000-8000-000000000001','existing001','checking_video','checking_video',gen_random_uuid(),clock_timestamp()+interval '1 minute',clock_timestamp());
 select results_eq($$select kind from public.admit_import('existing001')$$, array['existing'::text],
-  'existing job remains available after quota is exhausted');
+  'existing job remains available after more than twenty attempts');
 
 delete from public.import_attempts;
 delete from public.import_jobs;
