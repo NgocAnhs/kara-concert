@@ -4,7 +4,7 @@ import { createPracticeRange, type PracticeRange } from '../domain/practiceRange
 import { Brand } from './Brand';
 import { LyricLineButton } from './LyricLineButton';
 import { YouTubePracticePlayer } from './YouTubePracticePlayer';
-import { nudgeLyricBoundary, validateLyricTimestamps, type EditableTimestamp } from '../domain/lyricTimestampEdit';
+import { duplicateStartGroups, nudgeLyricBoundary, validateLyricTimestamps, type EditableTimestamp } from '../domain/lyricTimestampEdit';
 
 type PracticePanelProps = {
   song: Song;
@@ -15,6 +15,10 @@ type PracticePanelProps = {
 
 function formatSeconds(seconds: number): string {
   return `${Math.floor(seconds / 60)}:${Math.floor(seconds % 60).toString().padStart(2, '0')}`;
+}
+
+function formatEditorTimestamp(seconds: number): string {
+  return `${Math.floor(seconds / 60).toString().padStart(2, '0')}:${Math.floor(seconds % 60).toString().padStart(2, '0')}`;
 }
 
 export function PracticePanel({ song, onBack, canEdit = false, onUpdateTimestamps }: PracticePanelProps) {
@@ -73,8 +77,15 @@ export function PracticePanel({ song, onBack, canEdit = false, onUpdateTimestamp
     setRange(nextRange);
   };
 
-  const timestampLines = lines.map(({ id, startSeconds, endSeconds }) => ({ id, startSeconds, endSeconds }));
+  const timestampLines = lines.map(({ id, startSeconds, endSeconds, displayOrder }) => ({ id, startSeconds, endSeconds, displayOrder }));
   const timestampError = editing ? validateLyricTimestamps(timestampLines) : null;
+  const duplicateStartError = editing ? duplicateStartGroups(timestampLines)
+    .map((ids) => {
+      const duplicateLines = ids.map((id) => lines.find((line) => line.id === id)!);
+      const labels = duplicateLines.map((line) => String(line.displayOrder + 1).padStart(2, '0'));
+      const seconds = duplicateLines[0]!.startSeconds;
+      return `Câu ${labels.slice(0, -1).join(', câu ')} và câu ${labels.at(-1)} cùng start ${formatEditorTimestamp(seconds)}.`;
+    }).join(' ') : null;
   const nudgeTimestamp = (lineId: string, boundary: 'start' | 'end', seconds: number) => {
     setEditError(null);
     const edited = nudgeLyricBoundary(timestampLines, lineId, boundary, seconds);
@@ -85,7 +96,7 @@ export function PracticePanel({ song, onBack, canEdit = false, onUpdateTimestamp
     if (!onUpdateTimestamps || timestampError || saving) return;
     setSaving(true); setEditError(null);
     try {
-      await onUpdateTimestamps(timestampLines);
+      await onUpdateTimestamps(timestampLines.map(({ id, startSeconds, endSeconds }) => ({ id, startSeconds, endSeconds })));
       setSavedLines(lines);
       setEditing(false);
     } catch {
@@ -154,7 +165,7 @@ export function PracticePanel({ song, onBack, canEdit = false, onUpdateTimestamp
             </button>}
           </div>
           {error && <p role="alert" className="notice notice-warning">{error}</p>}
-          {(editError || timestampError) && <p role="alert" className="notice notice-warning">{editError ?? timestampError}</p>}
+          {(editError || duplicateStartError || timestampError) && <p role="alert" className="notice notice-warning">{editError ?? duplicateStartError ?? timestampError}</p>}
           {lines.length === 0 && <p role="status" className="notice">Bài hát này chưa có lời để luyện. Bạn vẫn có thể nghe video.</p>}
           <div className="lyric-list" role="group" aria-label="Các câu hát" ref={lyricListRef}>
             {lines.map((line) => (

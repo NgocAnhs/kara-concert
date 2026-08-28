@@ -31,13 +31,19 @@ select is(
     {"id":"31000000-0000-4000-8000-000000000001","start_seconds":2,"end_seconds":5},
     {"id":"31000000-0000-4000-8000-000000000002","start_seconds":4,"end_seconds":7},
     {"id":"31000000-0000-4000-8000-000000000003","start_seconds":8,"end_seconds":10}
-  ]$$::jsonb), false, 'rejects overlapping lyric ranges');
+  ]$$::jsonb), true, 'allows a one-second overlap between adjacent lyric ranges');
 select is(
   public.update_lyric_timestamps('30000000-0000-4000-8000-000000000001', $$[
     {"id":"31000000-0000-4000-8000-000000000001","start_seconds":1,"end_seconds":100},
     {"id":"31000000-0000-4000-8000-000000000002","start_seconds":2,"end_seconds":3},
     {"id":"31000000-0000-4000-8000-000000000003","start_seconds":4,"end_seconds":5}
-  ]$$::jsonb), false, 'rejects a range enclosed by an earlier long lyric');
+  ]$$::jsonb), false, 'rejects an adjacent overlap longer than one second');
+select is(
+  public.update_lyric_timestamps('30000000-0000-4000-8000-000000000001', $$[
+    {"id":"31000000-0000-4000-8000-000000000001","start_seconds":1,"end_seconds":10},
+    {"id":"31000000-0000-4000-8000-000000000002","start_seconds":9,"end_seconds":10},
+    {"id":"31000000-0000-4000-8000-000000000003","start_seconds":9.5,"end_seconds":11}
+  ]$$::jsonb), false, 'rejects overlap between non-adjacent lyric ranges');
 
 select * from finish();
 rollback;
