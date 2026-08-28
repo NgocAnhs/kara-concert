@@ -135,20 +135,17 @@ describe('YouTube import flow', () => {
     expect(fetchMock.mock.calls.filter(([url, init]) => url === '/api/imports' && (init as RequestInit | undefined)?.method === 'POST')).toHaveLength(1);
   });
 
-  it.each([
-    ['DAILY_LIMIT', 3661, /giới hạn thêm bài hôm nay.*1 giờ 1 phút 1 giây/i],
-    ['ACTIVE_LIMIT', 75, /đang xử lý số tác vụ tối đa.*1 phút 15 giây/i],
-  ])('explains admission limit %s with its server retry delay', async (code, retryAfter, expected) => {
+  it('explains the concurrent admission limit with its server retry delay', async () => {
     const user = userEvent.setup();
     vi.mocked(fetch)
       .mockResolvedValueOnce(json(200, { unlocked: true }))
-      .mockResolvedValueOnce(json(429, { error: code }, { 'Retry-After': String(retryAfter) }));
+      .mockResolvedValueOnce(json(429, { error: 'ACTIVE_LIMIT' }, { 'Retry-After': '75' }));
 
     render(<App />);
     await user.type(await screen.findByLabelText('Liên kết YouTube'), 'https://youtu.be/1CTced9CMMk');
     await user.click(screen.getByRole('button', { name: 'Thêm bài' }));
 
-    expect(await screen.findByRole('alert')).toHaveTextContent(expected);
+    expect(await screen.findByRole('alert')).toHaveTextContent(/đang xử lý số tác vụ tối đa.*1 phút 15 giây/i);
     expect(screen.getByRole('button', { name: 'Thêm bài' })).toBeEnabled();
   });
 

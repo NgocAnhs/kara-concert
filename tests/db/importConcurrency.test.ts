@@ -101,21 +101,23 @@ describe('atomic import admission on real PostgreSQL connections', () => {
     expect(active.rows[0].count).toBe(2);
   });
 
-  it('rejects attempt 21 while returning cached and existing results before exhausted quota', async () => {
+  it('admits more than twenty completed attempts while returning cached and existing results', async () => {
     const repo = repository();
     for (let index = 0; index < 20; index += 1) {
       const admission = await repo.admit(`q${String(index).padStart(10, '0')}`);
       expect(admission.kind).toBe('created');
       if (admission.kind === 'created') await repo.fail(admission.lease, 'TEST_DONE');
     }
-    await expect(repo.admit('q0000000020')).resolves.toMatchObject({ kind: 'rejected', code: 'DAILY_LIMIT' });
+    const twentyFirstAdmission = await repo.admit('q0000000020');
+    expect(twentyFirstAdmission.kind).toBe('created');
+    if (twentyFirstAdmission.kind === 'created') await repo.fail(twentyFirstAdmission.lease, 'TEST_DONE');
 
     const cached = await admin.query("insert into public.songs(title,youtube_url,status,youtube_video_id,source) values ('cached','https://youtu.be/t5cache0001','published','t5cache0001','manual') returning id");
     await admin.query("insert into public.import_jobs(video_id,status,stage,lease_token,deadline_at) values ('t5exist0001','checking_video','checking_video',gen_random_uuid(),clock_timestamp()+interval '1 minute')");
     await expect(repo.admit('t5cache0001')).resolves.toEqual({ kind: 'cached', songId: cached.rows[0].id });
     await expect(repo.admit('t5exist0001')).resolves.toMatchObject({ kind: 'existing' });
     const attempts = await admin.query('select count(*)::int as count from public.import_attempts');
-    expect(attempts.rows[0].count).toBe(20);
+    expect(attempts.rows[0].count).toBe(21);
   });
 
   it('uses database time after a contended job lock to fence late completion', async () => {

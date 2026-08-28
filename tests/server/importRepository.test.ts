@@ -60,14 +60,14 @@ describe('import repository', () => {
     const mock = rpcClient([
       { data: [{ kind: 'cached', song_id: '30000000-0000-4000-8000-000000000003' }], error: null },
       { data: [{ kind: 'existing', ...publicRow }], error: null },
-      { data: [{ kind: 'rejected', error_code: 'DAILY_LIMIT', retry_after_seconds: 60 }], error: null },
+      { data: [{ kind: 'rejected', error_code: 'ACTIVE_LIMIT', retry_after_seconds: 60 }], error: null },
     ]);
     const repository = createImportRepository(mock.client, { aiModel: 'gemini-test' });
     await expect(repository.admit('aaaaaaaaaaa')).resolves.toEqual({ kind: 'cached', songId: '30000000-0000-4000-8000-000000000003' });
     await expect(repository.admit('bbbbbbbbbbb')).resolves.toEqual({ kind: 'existing', job: {
       jobId: publicRow.job_id, status: 'checking_video', stage: 'checking_video', deadlineAt: publicRow.deadline_at,
     } });
-    await expect(repository.admit('ccccccccccc')).resolves.toEqual({ kind: 'rejected', code: 'DAILY_LIMIT', retryAfterSeconds: 60 });
+    await expect(repository.admit('ccccccccccc')).resolves.toEqual({ kind: 'rejected', code: 'ACTIVE_LIMIT', retryAfterSeconds: 60 });
   });
 
   it('rejects malformed database rows instead of exposing partial state', async () => {

@@ -129,7 +129,6 @@ describe('POST /api/imports handler', () => {
   });
 
   it.each([
-    ['DAILY_LIMIT', 429, 61],
     ['ACTIVE_LIMIT', 429, 9],
     ['VIDEO_UNAVAILABLE', 422, undefined],
     ['IMPORT_UNAVAILABLE', 503, undefined],

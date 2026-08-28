@@ -18,9 +18,6 @@ function retryDelay(seconds: number | undefined): string {
 
 export function admissionFailureMessage(reason: unknown): string {
   if (!(reason instanceof ImportClientError)) return 'Không thể tiếp nhận liên kết này. Hãy kiểm tra lại và thử lại.';
-  if (reason.code === 'DAILY_LIMIT') {
-    return `Bạn đã đạt giới hạn thêm bài hôm nay. Có thể thử lại sau ${retryDelay(reason.retryAfter)}.`;
-  }
   if (reason.code === 'ACTIVE_LIMIT') {
     return `Hệ thống đang xử lý số tác vụ tối đa. Có thể thử lại sau ${retryDelay(reason.retryAfter)}.`;
   }
