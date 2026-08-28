@@ -32,7 +32,7 @@ export function createLyricEditHandler(deps: LyricEditDependencies) {
       assertOrigin(req, config);
       const songId = req.query.id;
       if (typeof songId !== 'string' || !UUID.test(songId)) throw new HttpError(404, 'SONG_NOT_FOUND');
-      const parsed = updateSchema.safeParse(await readJsonBody(req));
+      const parsed = updateSchema.safeParse(await readJsonBody(req, 64 * 1024));
       if (!parsed.success || !validTimestamps(parsed.data.lines)) throw new HttpError(400, 'INVALID_LYRIC_TIMESTAMPS');
       if (!await deps.updateLyrics(songId, parsed.data.lines)) throw new HttpError(404, 'SONG_NOT_FOUND');
       sendJson(res, 200, { updated: true });

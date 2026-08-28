@@ -40,7 +40,7 @@ it.each(['{', '', Buffer.from([0xff])])('rejects malformed JSON or UTF-8 bytes %
   await expect(readJsonBody(request('POST', body))).rejects.toMatchObject({ status: 400 });
 });
 
-it('counts raw whitespace and multibyte bytes towards the 4KiB limit', async () => {
+it('keeps the default JSON request limit at 4KiB', async () => {
   expect(await readJsonBody(request('POST', '{}'.padEnd(4096)))).toEqual({});
   await expect(readJsonBody(request('POST', '{}'.padEnd(4097)))).rejects.toMatchObject({ status: 413 });
   await expect(readJsonBody(request('POST', JSON.stringify({ x: '한'.repeat(1500) })))).rejects.toMatchObject({ status: 413 });
@@ -49,6 +49,11 @@ it('counts raw whitespace and multibyte bytes towards the 4KiB limit', async () 
 it('rejects oversized Content-Length before consuming the body and unsupported compression', async () => {
   await expect(readJsonBody(request('POST', '{}', { 'content-length': '4097' }))).rejects.toMatchObject({ status: 413 });
   await expect(readJsonBody(request('POST', '{}', { 'content-encoding': 'gzip' }))).rejects.toMatchObject({ status: 415 });
+});
+
+it('allows a caller to opt into a 64KiB JSON request limit', async () => {
+  expect(await readJsonBody(request('POST', '{}'.padEnd(65_536)), 65_536)).toEqual({});
+  await expect(readJsonBody(request('POST', '{}'.padEnd(65_537)), 65_536)).rejects.toMatchObject({ status: 413 });
 });
 
 it('requires a valid session before callers can continue to import work', () => {

@@ -39,6 +39,20 @@ describe('PATCH /api/songs/:id/lyrics', () => {
     ]);
   });
 
+  it('accepts an update containing 90 lyric timestamps', async () => {
+    const lines = Array.from({ length: 90 }, (_, index) => ({
+      id: `20000000-0000-4000-8000-${String(index + 10).padStart(12, '0')}`,
+      startSeconds: index * 2,
+      endSeconds: index * 2 + 1,
+    }));
+    const out = response();
+    const req = request('PATCH', JSON.stringify({ lines }), { cookie, origin: 'https://app.test' }); req.query = { id: songId };
+
+    await createLyricEditHandler({ config, updateLyrics: async () => true, nowSeconds: () => 1000 })(req, out.res);
+
+    expect(out.status).toBe(200);
+  });
+
   it('rejects duplicate start timestamps before the repository is called', async () => {
     const updateLyrics = vi.fn();
     const out = response();
