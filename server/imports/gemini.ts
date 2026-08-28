@@ -20,7 +20,7 @@ type Meaning = { lineId: number; meaning: string };
 const MAX_TEXT = 2000;
 const MAX_TITLE = 200;
 const MAX_LINES = 500;
-const MAX_OUTPUT_TOKENS = 8192;
+const MAX_ENRICHMENT_OUTPUT_TOKENS = 32768;
 const MODEL = /^[A-Za-z0-9._-]{1,128}$/;
 
 export type ProviderResponseTelemetry = {
@@ -198,7 +198,7 @@ export function createGeminiProvider({ apiKey, model, fetch: fetcher = globalThi
         model,
         input,
         response_format: { type: 'text', mime_type: 'application/json', schema },
-        generation_config: { max_output_tokens: MAX_OUTPUT_TOKENS },
+        generation_config: { max_output_tokens: MAX_ENRICHMENT_OUTPUT_TOKENS, thinking_level: 'minimal' },
         store: false,
       } : { model, input };
       response = await fetcher(endpoint, { method: 'POST', headers: { 'content-type': 'application/json', 'x-goog-api-key': apiKey }, signal,
