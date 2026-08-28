@@ -16,6 +16,9 @@ type ProviderOptions = {
 type CallOptions = { signal: AbortSignal };
 type Replacement = { segmentId: number; vietHan: string; romanization: string };
 type Meaning = { lineId: number; meaning: string };
+type EnrichmentValidationReason = 'ROOT_SHAPE' | 'REPLACEMENT_SHAPE' | 'READING_FORMAT' | 'MEANING_SHAPE'
+  | 'DUPLICATE_REPLACEMENT_ID' | 'DUPLICATE_MEANING_ID' | 'REPLACEMENT_COUNT_MISMATCH'
+  | 'UNKNOWN_REPLACEMENT_ID' | 'MEANING_COUNT_MISMATCH' | 'UNKNOWN_MEANING_ID';
 
 const MAX_TEXT = 2000;
 const MAX_TITLE = 200;
@@ -36,7 +39,18 @@ export type ProviderDiagnostic = {
   providerCode?: string;
   invalidFields?: string[];
   finishReasons?: string[];
+  validationReason?: EnrichmentValidationReason;
+  expectedCount?: number;
+  actualCount?: number;
 };
+
+class EnrichmentValidationFailure extends ProviderFailure {
+  constructor(
+    readonly validationReason: EnrichmentValidationReason,
+    readonly expectedCount?: number,
+    readonly actualCount?: number,
+  ) { super('PROVIDER_TRANSIENT'); }
+}
 
 function transient(): never { throw new ProviderFailure('PROVIDER_TRANSIENT'); }
 function quota(): never { throw new ProviderFailure('PROVIDER_QUOTA'); }
@@ -155,27 +169,32 @@ function remapSegments(text: string, nextId: () => number): Segment[] {
   return splitLyric(text).map((segment) => ({ ...segment, id: segment.kind === 'hangul' ? nextId() : segment.id }));
 }
 
+function invalidEnrichment(reason: EnrichmentValidationReason, expectedCount?: number, actualCount?: number): never {
+  throw new EnrichmentValidationFailure(reason, expectedCount, actualCount);
+}
+
 function validateEnrichment(value: unknown, transcript: Transcript, expectedSegmentIds: Set<number>): { replacements: Replacement[]; meanings: Meaning[] } {
   const root = object(value);
-  if (!root || !hasOnlyKeys(root, ['replacements', 'meanings']) || !Array.isArray(root.replacements) || !Array.isArray(root.meanings)) transient();
+  if (!root || !hasOnlyKeys(root, ['replacements', 'meanings']) || !Array.isArray(root.replacements) || !Array.isArray(root.meanings)) invalidEnrichment('ROOT_SHAPE');
   const replacements: Replacement[] = root.replacements.map((item) => {
     const entry = object(item);
     const segmentId = entry?.segmentId;
-    if (!entry || !hasOnlyKeys(entry, ['segmentId', 'vietHan', 'romanization']) || typeof segmentId !== 'number' || !Number.isSafeInteger(segmentId) || !finiteReading(entry.vietHan) || !finiteReading(entry.romanization)) transient();
+    if (!entry || !hasOnlyKeys(entry, ['segmentId', 'vietHan', 'romanization']) || typeof segmentId !== 'number' || !Number.isSafeInteger(segmentId)) invalidEnrichment('REPLACEMENT_SHAPE');
+    if (!finiteReading(entry.vietHan) || !finiteReading(entry.romanization)) invalidEnrichment('READING_FORMAT');
     return { segmentId, vietHan: entry.vietHan, romanization: entry.romanization };
   });
   const meanings: Meaning[] = root.meanings.map((item) => {
     const entry = object(item);
     const lineId = entry?.lineId;
-    if (!entry || !hasOnlyKeys(entry, ['lineId', 'meaning']) || typeof lineId !== 'number' || !Number.isSafeInteger(lineId) || !nonBlankString(entry.meaning, MAX_TEXT)) transient();
+    if (!entry || !hasOnlyKeys(entry, ['lineId', 'meaning']) || typeof lineId !== 'number' || !Number.isSafeInteger(lineId) || !nonBlankString(entry.meaning, MAX_TEXT)) invalidEnrichment('MEANING_SHAPE');
     return { lineId, meaning: entry.meaning };
   });
-  if (new Set(replacements.map((entry) => entry.segmentId)).size !== replacements.length
-    || new Set(meanings.map((entry) => entry.lineId)).size !== meanings.length
-    || replacements.length !== expectedSegmentIds.size
-    || replacements.some((entry) => !expectedSegmentIds.has(entry.segmentId))
-    || meanings.length !== transcript.lines.length
-    || meanings.some((entry) => entry.lineId < 0 || entry.lineId >= transcript.lines.length)) transient();
+  if (new Set(replacements.map((entry) => entry.segmentId)).size !== replacements.length) invalidEnrichment('DUPLICATE_REPLACEMENT_ID');
+  if (new Set(meanings.map((entry) => entry.lineId)).size !== meanings.length) invalidEnrichment('DUPLICATE_MEANING_ID');
+  if (replacements.length !== expectedSegmentIds.size) invalidEnrichment('REPLACEMENT_COUNT_MISMATCH', expectedSegmentIds.size, replacements.length);
+  if (replacements.some((entry) => !expectedSegmentIds.has(entry.segmentId))) invalidEnrichment('UNKNOWN_REPLACEMENT_ID');
+  if (meanings.length !== transcript.lines.length) invalidEnrichment('MEANING_COUNT_MISMATCH', transcript.lines.length, meanings.length);
+  if (meanings.some((entry) => entry.lineId < 0 || entry.lineId >= transcript.lines.length)) invalidEnrichment('UNKNOWN_MEANING_ID');
   return { replacements, meanings };
 }
 
@@ -254,7 +273,11 @@ export function createGeminiProvider({ apiKey, model, fetch: fetcher = globalThi
     try {
       enriched = validateEnrichment(output, transcript, new Set(segments.flatMap((line) => line.filter((segment) => segment.kind === 'hangul').map((segment) => segment.id))));
     } catch (error) {
-      recordDiagnostic({ event: 'INVALID_ENRICHMENT' });
+      recordDiagnostic({ event: 'INVALID_ENRICHMENT', ...(error instanceof EnrichmentValidationFailure ? {
+        validationReason: error.validationReason,
+        ...(error.expectedCount !== undefined ? { expectedCount: error.expectedCount } : {}),
+        ...(error.actualCount !== undefined ? { actualCount: error.actualCount } : {}),
+      } : {}) });
       throw error;
     }
     const byId = new Map(enriched.replacements.map((replacement) => [replacement.segmentId, replacement]));

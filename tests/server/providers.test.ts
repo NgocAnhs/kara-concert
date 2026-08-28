@@ -336,15 +336,25 @@ describe('Gemini provider', () => {
   });
 
   it('rejects extra replacement IDs rather than ignoring model output', async () => {
-    const provider = createGeminiProvider({ apiKey: 'test-key', model: 'gemini-test', fetch: async () => jsonResponse(validResponse({
-      replacements: [
-        { segmentId: 0, vietHan: 'nan', romanization: 'nan' },
-        { segmentId: 99, vietHan: 'extra', romanization: 'extra' },
-      ],
-      meanings: [{ lineId: 0, meaning: 'tôi' }],
-    })) });
+    const diagnostics: unknown[] = [];
+    const provider = createGeminiProvider({
+      apiKey: 'test-key', model: 'gemini-test',
+      fetch: async () => jsonResponse(validResponse({
+        replacements: [
+          { segmentId: 0, vietHan: 'nan', romanization: 'nan' },
+          { segmentId: 99, vietHan: 'extra', romanization: 'extra' },
+        ],
+        meanings: [{ lineId: 0, meaning: 'tôi' }],
+      })),
+      onDiagnostic: (value) => diagnostics.push(value),
+    });
     await expect(provider.enrich({ title: 'Song', lines: [{ text: '난', start: 0, end: 1 }] }, { signal: new AbortController().signal }))
       .rejects.toMatchObject({ code: 'PROVIDER_TRANSIENT' });
+    expect(diagnostics).toEqual([{
+      event: 'INVALID_ENRICHMENT', validationReason: 'REPLACEMENT_COUNT_MISMATCH',
+      expectedCount: 1, actualCount: 2,
+    }]);
+    expect(JSON.stringify(diagnostics)).not.toMatch(/nan|extra|tôi|난/u);
   });
 
   it('rejects a rewritten-English field instead of accepting unused model text', async () => {
