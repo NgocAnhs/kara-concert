@@ -207,7 +207,7 @@ Các lệnh/script dưới đây là phần sẽ bổ sung khi triển khai, ch�
 
 - Không cấu hình Google OAuth hoặc Supabase Auth. Cần `IMPORT_ACCESS_TOKEN` và `APP_ORIGIN` trong môi trường server; origin ứng dụng phải được xác minh, không đoán domain. Hợp đồng kiểm tra token, phiên và API nằm ở mục 3.1–3.3.
 - Token local nằm ở `.secrets/song-import.env`, file quyền `600`, bị loại khỏi Git và Vercel upload. Khi phát hành phải cấu hình secret trong Vercel Environment Variables riêng; file local không tự làm production nhận token. Không in token trong chat/log. Token dài 43 ký tự base64url từ 32 byte ngẫu nhiên, không dùng mật khẩu dễ đoán.
-- `GEMINI_API_KEY` phía server; model cấu hình được, mặc định đề xuất 3.6 Flash vì đã chạy được với key hiện có.
+- `GEMINI_API_KEY` phía server; model cấu hình được. Bằng chứng thử nghiệm ban đầu dùng 3.6 Flash; cấu hình vận hành hiện tại dùng `gemini-3.5-flash-lite` để giảm độ trễ và chi phí.
 - YouTube Data API: key được giới hạn API phù hợp để đọc metadata chính thức. Không cần người dùng cuối đăng nhập Google hoặc cấp quyền kênh cho thao tác đọc metadata công khai; không giả định Gemini key đang có được phép gọi YouTube Data API.
 - Supabase server credential chỉ đặt trong môi trường server hoặc secret store; không đặt trong biến `VITE_*`, Vite env file, Git hoặc log. Không yêu cầu gửi key vào chat.
 - Cần `CRON_SECRET` riêng và lịch bảo trì metadata mỗi ngày, heartbeat/cảnh báo vận hành trước khi mở tính năng; không tái sử dụng token thêm bài làm secret cron. Lịch chạy và hạn mức cron phải được xác minh trên gói Vercel hiện tại, không tự nâng gói.

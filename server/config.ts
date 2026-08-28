@@ -13,7 +13,7 @@ export type ServerConfig = {
 
 type ServerEnvironment = Record<string, string | undefined>;
 
-const DEFAULT_GEMINI_MODEL = 'gemini-3.6-flash';
+const DEFAULT_GEMINI_MODEL = 'gemini-3.5-flash-lite';
 const DEFAULT_LOCAL_ORIGIN = 'http://127.0.0.1:3000';
 const BASE64URL_TOKEN = /^[A-Za-z0-9_-]{43}$/;
 
