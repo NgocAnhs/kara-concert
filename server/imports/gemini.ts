@@ -152,7 +152,7 @@ function enrichmentSchema() {
   } };
 }
 
-function validateTextOutput(body: unknown): unknown {
+function validateTextOutput(body: unknown, allowMalformedUnicodeEscape = false): unknown {
   const root = object(body);
   const steps = root?.status === 'completed' && Array.isArray(root.steps) ? root.steps : null;
   const modelOutputs = steps?.filter((step) => object(step)?.type === 'model_output') ?? [];
@@ -164,7 +164,16 @@ function validateTextOutput(body: unknown): unknown {
   }).join('');
   if (!text) transient();
   const fenced = /^\s*```json[ \t]*\r?\n([\s\S]*?)\r?\n```\s*$/i.exec(text);
-  try { return JSON.parse(fenced?.[1] ?? text); } catch { return transient(); }
+  const json = fenced?.[1] ?? text;
+  try { return JSON.parse(json); } catch {
+    if (!allowMalformedUnicodeEscape) return transient();
+    // Some model responses prefix a raw non-ASCII character with an
+    // incomplete Unicode escape (for example `\u1ebẹp`). Preserve that raw
+    // character and retry; malformed ASCII escapes remain invalid.
+    const repaired = json.replace(/\\u[0-9a-fA-F]{0,3}(?=[^\0-\x7F])/g, '');
+    if (repaired === json) return transient();
+    try { return JSON.parse(repaired); } catch { return transient(); }
+  }
 }
 
 function finiteReading(value: unknown): value is string {
@@ -250,7 +259,7 @@ export function createGeminiProvider({ apiKey, model, fetch: fetcher = globalThi
     }
     await onRawResponse?.({ stage, httpStatus: response.status, response: body });
     recordResponseTelemetry(body);
-    try { return validateTextOutput(body); } catch (error) {
+    try { return validateTextOutput(body, stage === 'transcription'); } catch (error) {
       recordDiagnostic({ event: 'INVALID_RESPONSE', finishReasons: responseTelemetry(body).finishReasons });
       throw error;
     }

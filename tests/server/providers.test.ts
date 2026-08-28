@@ -99,6 +99,42 @@ describe('Gemini provider', () => {
     steps: [{ type: 'model_output', content: [{ type: 'text', text: JSON.stringify(payload) }] }],
   });
 
+  it('accepts a transcript whose model JSON has a malformed Unicode escape', async () => {
+    // Gemini has emitted `\\u1ebẹp` for "ẹp": the raw `ẹ` prematurely ends
+    // the four-hex-digit escape and makes otherwise valid output unparsable.
+    const malformedText = String.raw`{"title":"Bài hát","lines":[{"text":"xinh \u1ebẹp","start":0,"end":1}]}`;
+    const provider = createGeminiProvider({
+      apiKey: 'test-key', model: 'gemini-test',
+      fetch: async () => jsonResponse({
+        status: 'completed',
+        steps: [{ type: 'model_output', content: [{ type: 'text', text: malformedText }] }],
+      }),
+    });
+
+    await expect(provider.transcribe(canonicalUrl, {
+      signal: new AbortController().signal, durationSeconds: 480,
+    })).resolves.toEqual({
+      title: 'Bài hát', lines: [{ text: 'xinh ẹp', start: 0, end: 1 }],
+    });
+  });
+
+  it('does not repair a malformed Unicode escape in enrichment output', async () => {
+    const malformedText = String.raw`{"replacements":[],"meanings":[{"lineId":0,"meaning":"xinh \u1ebẹp"}]}`;
+    let calls = 0;
+    const provider = createGeminiProvider({
+      apiKey: 'test-key', model: 'gemini-test',
+      fetch: async () => jsonResponse(calls++ === 0
+        ? validResponse({ title: 'Song', lines: [{ text: 'a', start: 0, end: 1 }] })
+        : { status: 'completed', steps: [{ type: 'model_output', content: [{ type: 'text', text: malformedText }] }] }),
+    });
+    const transcript = await provider.transcribe(canonicalUrl, {
+      signal: new AbortController().signal, durationSeconds: 480,
+    });
+
+    await expect(provider.enrich(transcript, { signal: new AbortController().signal }))
+      .rejects.toMatchObject({ code: 'PROVIDER_TRANSIENT' });
+  });
+
   it('copies English unchanged and limits structured output to text-only enrichment', async () => {
     const requests: Request[] = [];
     const fetcher: typeof fetch = async (input, init) => {
