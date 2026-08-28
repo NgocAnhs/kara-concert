@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useMemo, useRef, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { BrowserRouter, Link, Navigate, Route, Routes, useLocation, useNavigate, useParams } from 'react-router';
 import { Brand } from '../components/Brand';
 import { PracticePanel } from '../components/PracticePanel';
 import { SongLibrary } from '../components/SongLibrary';
 import { ImportPage } from '../features/import/ImportPage';
 import { ImportStatusPage } from '../features/import/ImportStatusPage';
+import { getAccess, updateLyricTimestamps } from '../features/import/client';
 import type { Song } from '../domain/song';
 import { createSongRoutes } from '../domain/songRoutes';
 import { supabase } from '../lib/supabase';
@@ -35,7 +36,7 @@ function AppRoutes() {
       <Route path="/" element={<LibraryPage songs={songs} error={error} />} />
       <Route path="/import" element={<ImportPage onJob={(jobId) => navigate(`/imports/${encodeURIComponent(jobId)}`)} onCompleted={onCompleted} />} />
       <Route path="/imports/:jobId" element={<ImportStatusRoute onCompleted={onCompleted} />} />
-      <Route path="/practice/:songKey" element={<PracticePage songs={songs} error={error} />} />
+      <Route path="/practice/:songKey" element={<PracticePage songs={songs} error={error} reload={reload} />} />
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
   );
@@ -77,11 +78,17 @@ function NotFoundPage({ songMissing = false }: { songMissing?: boolean }) {
   );
 }
 
-function PracticePage({ songs, error }: CatalogState) {
+function PracticePage({ songs, error, reload }: CatalogState & { reload(signal?: AbortSignal): Promise<Song[]> }) {
   const { songKey } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
   const routes = useMemo(() => createSongRoutes(songs ?? []), [songs]);
+  const [canEdit, setCanEdit] = useState(false);
+  useEffect(() => {
+    let active = true;
+    void getAccess().then((access) => { if (active) setCanEdit(access.unlocked); }).catch(() => { if (active) setCanEdit(false); });
+    return () => { active = false; };
+  }, []);
   if (!supabase || error || songs === null) {
     return <RouteMessage title="Luyện hát"><CatalogNotice songs={songs} error={error} /></RouteMessage>;
   }
@@ -92,7 +99,10 @@ function PracticePage({ songs, error }: CatalogState) {
     return <Navigate replace to={{ pathname: route.pathname, search: location.search, hash: location.hash }} />;
   }
   const { song } = route;
-  return <PracticePanel key={song.id} song={song} onBack={() => navigate('/')} />;
+  return <PracticePanel key={song.id} song={song} onBack={() => navigate('/')} canEdit={canEdit} onUpdateTimestamps={async (lines) => {
+    await updateLyricTimestamps(song.id, lines);
+    await reload();
+  }} />;
 }
 
 function LibraryPage({ songs, error }: CatalogState) {

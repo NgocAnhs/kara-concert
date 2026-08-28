@@ -1,4 +1,5 @@
 import type { ImportReply, PublicJob } from '../../../shared/import';
+import type { EditableTimestamp } from '../../domain/lyricTimestampEdit';
 
 type AccessState = { unlocked: boolean; expiresAt?: number };
 
@@ -46,4 +47,12 @@ export function startImport(youtubeUrl: string, signal?: AbortSignal): Promise<I
 
 export function getImport(jobId: string, signal?: AbortSignal): Promise<PublicJob> {
   return requestJson(`/api/imports/${encodeURIComponent(jobId)}`, { signal });
+}
+
+export function updateLyricTimestamps(songId: string, lines: EditableTimestamp[], signal?: AbortSignal): Promise<{ updated: true }> {
+  return requestJson(`/api/songs/${encodeURIComponent(songId)}/lyrics`, {
+    method: 'PATCH', signal,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ lines }),
+  });
 }

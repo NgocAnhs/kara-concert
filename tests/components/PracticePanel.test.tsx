@@ -58,6 +58,38 @@ describe('PracticePanel', () => {
     expect(screen.getByText(/AI tạo — lời và mốc thời gian có thể chưa chính xác/i)).toBeInTheDocument();
   });
 
+  it('lets an authorized editor shift both timestamps and save the draft', async () => {
+    const user = userEvent.setup();
+    const onUpdateTimestamps = vi.fn(async () => undefined);
+    render(<PracticePanel song={song} onBack={vi.fn()} canEdit onUpdateTimestamps={onUpdateTimestamps} />);
+
+    await user.click(screen.getByRole('button', { name: 'Chỉnh sửa timestamp' }));
+    await user.click(screen.getByRole('button', { name: 'Tăng timestamp câu 03 thêm 1 giây' }));
+
+    expect(screen.getByRole('button', { name: /0:07/i })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Cập nhật chỉnh sửa' }));
+    expect(onUpdateTimestamps).toHaveBeenCalledWith([
+      { id: 'a', startSeconds: 2, endSeconds: 4 },
+      { id: 'b', startSeconds: 4, endSeconds: 6 },
+      { id: 'c', startSeconds: 7, endSeconds: 9 },
+    ]);
+  });
+
+  it('keeps player controls usable and discards a draft when editing is closed', async () => {
+    const user = userEvent.setup();
+    render(<PracticePanel song={song} onBack={vi.fn()} canEdit onUpdateTimestamps={async () => undefined} />);
+
+    await user.click(screen.getByRole('button', { name: 'Chỉnh sửa timestamp' }));
+    await user.click(screen.getByRole('radio', { name: '0.75x' }));
+    await user.click(screen.getByRole('button', { name: /Chọt chul/i }));
+    await user.click(screen.getByRole('button', { name: 'Lặp đoạn' }));
+    expect(playerProps.last).toMatchObject({ playbackRate: 0.75, looping: true });
+    await user.click(screen.getByRole('button', { name: 'Tăng timestamp câu 03 thêm 1 giây' }));
+    await user.click(screen.getByRole('button', { name: 'Thoát chỉnh sửa' }));
+    await user.click(screen.getByRole('button', { name: 'Chỉnh sửa timestamp' }));
+    expect(screen.getByRole('button', { name: /0:06/i })).toBeInTheDocument();
+  });
+
   it('creates a range from adjacent lyric selections', async () => {
     const user = userEvent.setup();
     render(<PracticePanel song={song} onBack={vi.fn()} />);

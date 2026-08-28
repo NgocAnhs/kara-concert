@@ -4,13 +4,15 @@ type LyricLineButtonProps = {
   line: LyricLine;
   selected: boolean;
   active: boolean;
+  editing?: boolean;
   onSelect(): void;
+  onNudge?(seconds: number): void;
   buttonRef(element: HTMLButtonElement | null): void;
 };
 
-export function LyricLineButton({ line, selected, active, onSelect, buttonRef }: LyricLineButtonProps) {
+export function LyricLineButton({ line, selected, active, editing = false, onSelect, onNudge, buttonRef }: LyricLineButtonProps) {
   const timestamp = `${Math.floor(line.startSeconds / 60)}:${Math.floor(line.startSeconds % 60).toString().padStart(2, '0')}`;
-  return (
+  return <div className="lyric-card-wrap">
     <button
       type="button"
       className={`lyric-card${selected ? ' is-selected' : ''}${active ? ' is-active' : ''}`}
@@ -27,5 +29,9 @@ export function LyricLineButton({ line, selected, active, onSelect, buttonRef }:
       {line.romanization && <small className="lyric-romanization">{line.romanization}</small>}
       {line.meaning && <small className="lyric-meaning">{line.meaning}</small>}
     </button>
-  );
+    {editing && <div className="lyric-timestamp-controls" aria-label={`Chỉnh timestamp câu ${String(line.displayOrder + 1).padStart(2, '0')}`}>
+      <button type="button" className="timestamp-button" onClick={() => onNudge?.(-1)} aria-label={`Giảm timestamp câu ${String(line.displayOrder + 1).padStart(2, '0')} bớt 1 giây`}>−1s</button>
+      <button type="button" className="timestamp-button" onClick={() => onNudge?.(1)} aria-label={`Tăng timestamp câu ${String(line.displayOrder + 1).padStart(2, '0')} thêm 1 giây`}>+1s</button>
+    </div>}
+  </div>;
 }

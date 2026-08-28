@@ -4,29 +4,44 @@ import { createPracticeRange, type PracticeRange } from '../domain/practiceRange
 import { Brand } from './Brand';
 import { LyricLineButton } from './LyricLineButton';
 import { YouTubePracticePlayer } from './YouTubePracticePlayer';
+import { moveLyricTimestamp, validateLyricTimestamps, type EditableTimestamp } from '../domain/lyricTimestampEdit';
 
-type PracticePanelProps = { song: Song; onBack(): void };
+type PracticePanelProps = {
+  song: Song;
+  onBack(): void;
+  canEdit?: boolean;
+  onUpdateTimestamps?(lines: EditableTimestamp[]): Promise<void>;
+};
 
 function formatSeconds(seconds: number): string {
   return `${Math.floor(seconds / 60)}:${Math.floor(seconds % 60).toString().padStart(2, '0')}`;
 }
 
-export function PracticePanel({ song, onBack }: PracticePanelProps) {
+export function PracticePanel({ song, onBack, canEdit = false, onUpdateTimestamps }: PracticePanelProps) {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [range, setRange] = useState<PracticeRange | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [looping, setLooping] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [playbackRate, setPlaybackRate] = useState(1);
+  const [lines, setLines] = useState(song.lines);
+  const [savedLines, setSavedLines] = useState(song.lines);
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
   const lyricCardRefs = useRef(new Map<string, HTMLButtonElement>());
   const lyricListRef = useRef<HTMLDivElement>(null);
   const headingRef = useRef<HTMLHeadingElement>(null);
   const lastActiveLineId = useRef<string | null>(null);
-  const activeLineId = song.lines.find(
+  const activeLineId = lines.find(
     (line) => currentTime >= line.startSeconds && currentTime < line.endSeconds,
   )?.id ?? null;
 
   useEffect(() => { headingRef.current?.focus(); }, []);
+
+  useEffect(() => {
+    setRange(createPracticeRange(lines, selectedIds));
+  }, [lines, selectedIds]);
 
   useEffect(() => {
     if (!activeLineId || activeLineId === lastActiveLineId.current) return;
@@ -48,7 +63,7 @@ export function PracticePanel({ song, onBack }: PracticePanelProps) {
 
   const toggleLine = (lineId: string) => {
     const nextIds = selectedIds.includes(lineId) ? selectedIds.filter((id) => id !== lineId) : [...selectedIds, lineId];
-    const nextRange = createPracticeRange(song.lines, nextIds);
+    const nextRange = createPracticeRange(lines, nextIds);
     if (nextIds.length > 0 && !nextRange) {
       setError('Hãy chọn các câu liền nhau để tạo một đoạn luyện hát.');
       return;
@@ -56,6 +71,26 @@ export function PracticePanel({ song, onBack }: PracticePanelProps) {
     setError(null);
     setSelectedIds(nextIds);
     setRange(nextRange);
+  };
+
+  const timestampLines = lines.map(({ id, startSeconds, endSeconds }) => ({ id, startSeconds, endSeconds }));
+  const timestampError = editing ? validateLyricTimestamps(timestampLines) : null;
+  const nudgeTimestamp = (lineId: string, seconds: number) => {
+    setEditError(null);
+    const edited = moveLyricTimestamp(timestampLines, lineId, seconds);
+    setLines((current) => current.map((line) => edited.find((candidate) => candidate.id === line.id)
+      ? { ...line, ...edited.find((candidate) => candidate.id === line.id)! } : line));
+  };
+  const saveTimestamps = async () => {
+    if (!onUpdateTimestamps || timestampError || saving) return;
+    setSaving(true); setEditError(null);
+    try {
+      await onUpdateTimestamps(timestampLines);
+      setSavedLines(lines);
+      setEditing(false);
+    } catch {
+      setEditError('Không thể lưu chỉnh sửa. Hãy kiểm tra quyền truy cập và thử lại.');
+    } finally { setSaving(false); }
   };
 
   return (
@@ -106,19 +141,31 @@ export function PracticePanel({ song, onBack }: PracticePanelProps) {
         <section aria-label="Lời bài hát" className="panel panel-lyrics">
           <div className="panel-heading">
             <div><p className="panel-kicker">Hát theo cách của bạn</p><h2>Lời bài hát</h2></div>
-            <p className="library-count" aria-live="polite">{selectedIds.length > 0 ? `${selectedIds.length} câu đã chọn` : `${song.lines.length} câu hát`}</p>
+            <p className="library-count" aria-live="polite">{selectedIds.length > 0 ? `${selectedIds.length} câu đã chọn` : `${lines.length} câu hát`}</p>
           </div>
-          <p className="lyrics-help">Chạm các câu liền nhau để luyện một đoạn.</p>
+          <div className="lyrics-actions">
+            <p className="lyrics-help">{editing ? 'Dùng −1s hoặc +1s để dịch cả điểm bắt đầu và kết thúc của một câu.' : 'Chạm các câu liền nhau để luyện một đoạn.'}</p>
+            {canEdit && onUpdateTimestamps && <button className="secondary-button edit-toggle" type="button" onClick={() => {
+              if (editing) setLines(savedLines);
+              setEditing((value) => !value);
+              setEditError(null);
+            }} aria-pressed={editing}>
+              {editing ? 'Thoát chỉnh sửa' : 'Chỉnh sửa timestamp'}
+            </button>}
+          </div>
           {error && <p role="alert" className="notice notice-warning">{error}</p>}
-          {song.lines.length === 0 && <p role="status" className="notice">Bài hát này chưa có lời để luyện. Bạn vẫn có thể nghe video.</p>}
+          {(editError || timestampError) && <p role="alert" className="notice notice-warning">{editError ?? timestampError}</p>}
+          {lines.length === 0 && <p role="status" className="notice">Bài hát này chưa có lời để luyện. Bạn vẫn có thể nghe video.</p>}
           <div className="lyric-list" role="group" aria-label="Các câu hát" ref={lyricListRef}>
-            {song.lines.map((line) => (
+            {lines.map((line) => (
               <LyricLineButton
                 key={line.id}
                 line={line}
                 selected={selectedIds.includes(line.id)}
                 active={line.id === activeLineId}
+                editing={editing}
                 onSelect={() => toggleLine(line.id)}
+                onNudge={(seconds) => nudgeTimestamp(line.id, seconds)}
                 buttonRef={(element) => {
                   if (element) lyricCardRefs.current.set(line.id, element);
                   else lyricCardRefs.current.delete(line.id);
@@ -128,6 +175,11 @@ export function PracticePanel({ song, onBack }: PracticePanelProps) {
           </div>
         </section>
       </div>
+      {editing && <div className="timestamp-save-bar" role="region" aria-label="Lưu chỉnh sửa timestamp">
+        <button className="primary-button" type="button" onClick={() => void saveTimestamps()} disabled={saving || Boolean(timestampError)}>
+          {saving ? 'Đang cập nhật…' : 'Cập nhật chỉnh sửa'}
+        </button>
+      </div>}
     </main>
   );
 }
