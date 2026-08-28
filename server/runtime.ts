@@ -7,6 +7,8 @@ import { createImportHandler, createImportStatusHandler, type ImportHandlerDepen
 import { createImportRepository } from './imports/repository.js';
 import { createYouTubeProvider } from './imports/youtube.js';
 import { createMaintenanceHandler, createMaintenanceRepository, runMaintenance } from './maintenance.js';
+import { createLyricEditHandler } from './lyrics/handler.js';
+import { createLyricEditRepository } from './lyrics/repository.js';
 
 export function createRuntimeAccessHandler(env: Record<string, string | undefined> = process.env) {
   let config: ServerConfig | undefined;
@@ -90,6 +92,19 @@ export function createRuntimeImportHandler(env: Record<string, string | undefine
 
 export function createRuntimeImportStatusHandler(env: Record<string, string | undefined> = process.env) {
   return createImportStatusHandler(runtimeImportDependencies(env, true));
+}
+
+export function createRuntimeLyricEditHandler(env: Record<string, string | undefined> = process.env) {
+  let config: ServerConfig | undefined;
+  try { config = readServerConfig(env); } catch { /* Handler returns a safe 503. */ }
+  return createLyricEditHandler({
+    config,
+    nowSeconds: () => Math.floor(Date.now() / 1000),
+    updateLyrics: async (songId, lines) => {
+      if (!config?.supabaseUrl || !config.supabaseServerKey) throw new Error('CONFIG_UNAVAILABLE');
+      return createLyricEditRepository(createServerDb(config)).updateLyrics(songId, lines);
+    },
+  });
 }
 
 type MaintenanceRuntimeConfig = {
