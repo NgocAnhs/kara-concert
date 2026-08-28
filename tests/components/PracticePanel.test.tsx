@@ -84,6 +84,8 @@ describe('PracticePanel', () => {
 
     await user.click(screen.getByRole('button', { name: 'Chỉnh sửa timestamp' }));
     const lineTwoEditor = screen.getByRole('region', { name: 'Chỉnh timestamp câu 02' });
+    expect(screen.queryByText('Chỉnh câu 02')).not.toBeInTheDocument();
+    expect(lineTwoEditor.parentElement).toHaveClass('is-editing');
     expect(within(lineTwoEditor).getByText('S')).toBeInTheDocument();
     expect(within(lineTwoEditor).getByText('E')).toBeInTheDocument();
     expect(within(lineTwoEditor).getByRole('button', { name: 'Giảm start câu 02 bớt 1 giây' })).toBeInTheDocument();
@@ -103,6 +105,17 @@ describe('PracticePanel', () => {
     await user.click(screen.getByRole('button', { name: 'Cập nhật chỉnh sửa' }));
 
     expect(screen.getByRole('alert')).toHaveTextContent('Phiên chỉnh sửa đã hết hạn. Hãy mở lại quyền bằng token import rồi thử lại.');
+  });
+
+  it('explains when the timestamp update is rejected by the server', async () => {
+    const user = userEvent.setup();
+    const onUpdateTimestamps = async () => { throw Object.assign(new Error('LYRIC_UPDATE_FAILED'), { code: 'LYRIC_UPDATE_FAILED' }); };
+    render(<PracticePanel song={song} onBack={vi.fn()} canEdit onUpdateTimestamps={onUpdateTimestamps} />);
+
+    await user.click(screen.getByRole('button', { name: 'Chỉnh sửa timestamp' }));
+    await user.click(screen.getByRole('button', { name: 'Cập nhật chỉnh sửa' }));
+
+    expect(screen.getByRole('alert')).toHaveTextContent('Máy chủ chưa thể lưu timestamp. Hãy thử lại sau khi migration hoàn tất.');
   });
 
   it('keeps player controls usable and discards a draft when editing is closed', async () => {

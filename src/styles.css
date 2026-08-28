@@ -149,8 +149,11 @@ h1[tabindex]:focus-visible { outline: 2px solid currentColor; outline-offset: 6p
 .lyric-card.is-selected { background: var(--accent-soft); border-color: var(--accent); }
 .lyric-card.is-active { box-shadow: inset 3px 0 var(--accent); }
 .lyric-card-wrap { display: grid; gap: 8px; }
+.lyric-card-wrap.is-editing { gap: 0; border: 1px solid var(--accent); border-radius: 14px; background: var(--surface); }
+.lyric-card-wrap.is-editing .lyric-card { border: 0; border-radius: 13px 13px 0 0; }
 .lyric-timestamp-controls { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; padding: 12px; border: 1px dashed var(--accent); border-radius: 12px; background: var(--accent-soft); }
 .lyric-timestamp-controls > p { grid-column: 1 / -1; margin: 0; color: var(--accent); font-size: 12px; font-weight: 750; }
+.lyric-card-wrap.is-editing .lyric-timestamp-controls { border: 0; border-top: 1px dashed var(--accent); border-radius: 0 0 13px 13px; }
 .timestamp-boundary { display: grid; min-width: 0; grid-template-columns: 16px minmax(0, 1fr) minmax(0, 1fr); align-items: center; gap: 5px; }
 .timestamp-boundary strong { font-size: 12px; color: var(--muted); }
 .timestamp-button { min-width: 0; min-height: 40px; padding: 8px 4px; border: 1px solid var(--line); border-radius: 10px; background: var(--background); color: var(--ink); font-weight: 700; white-space: nowrap; }
