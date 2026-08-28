@@ -21,12 +21,12 @@ describe('PATCH /api/songs/:id/lyrics', () => {
     expect(updateLyrics).not.toHaveBeenCalled();
   });
 
-  it('validates a complete non-overlapping lyric update and passes it to the repository', async () => {
+  it('allows a complete lyric update with overlapping ranges and passes it to the repository', async () => {
     const updateLyrics = vi.fn(async () => true);
     const out = response();
     const req = request('PATCH', JSON.stringify({ lines: [
       { id: '20000000-0000-4000-8000-000000000001', startSeconds: 1, endSeconds: 3 },
-      { id: '20000000-0000-4000-8000-000000000002', startSeconds: 4, endSeconds: 6 },
+      { id: '20000000-0000-4000-8000-000000000002', startSeconds: 2, endSeconds: 6 },
     ] }), { cookie, origin: 'https://app.test' });
     req.query = { id: songId };
 
@@ -35,7 +35,7 @@ describe('PATCH /api/songs/:id/lyrics', () => {
     expect(out.status).toBe(200);
     expect(updateLyrics).toHaveBeenCalledWith(songId, [
       { id: '20000000-0000-4000-8000-000000000001', startSeconds: 1, endSeconds: 3 },
-      { id: '20000000-0000-4000-8000-000000000002', startSeconds: 4, endSeconds: 6 },
+      { id: '20000000-0000-4000-8000-000000000002', startSeconds: 2, endSeconds: 6 },
     ]);
   });
 
@@ -55,19 +55,4 @@ describe('PATCH /api/songs/:id/lyrics', () => {
     expect(updateLyrics).not.toHaveBeenCalled();
   });
 
-  it('rejects a range enclosed by an earlier long lyric before the repository is called', async () => {
-    const updateLyrics = vi.fn();
-    const out = response();
-    const req = request('PATCH', JSON.stringify({ lines: [
-      { id: '20000000-0000-4000-8000-000000000001', startSeconds: 1, endSeconds: 100 },
-      { id: '20000000-0000-4000-8000-000000000002', startSeconds: 2, endSeconds: 3 },
-      { id: '20000000-0000-4000-8000-000000000003', startSeconds: 4, endSeconds: 5 },
-    ] }), { cookie, origin: 'https://app.test' });
-    req.query = { id: songId };
-
-    await createLyricEditHandler({ config, updateLyrics, nowSeconds: () => 1000 })(req, out.res);
-
-    expect(out.status).toBe(400);
-    expect(updateLyrics).not.toHaveBeenCalled();
-  });
 });

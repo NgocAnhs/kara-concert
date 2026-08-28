@@ -18,11 +18,8 @@ export type LyricEditDependencies = {
 };
 
 function validTimestamps(lines: z.infer<typeof timestampSchema>[]): boolean {
-  const sorted = [...lines].sort((left, right) => left.startSeconds - right.startSeconds);
   return new Set(lines.map((line) => line.id)).size === lines.length
-    && !sorted.some((line, index) => index > 0 && (
-      line.startSeconds === sorted[index - 1]!.startSeconds || line.startSeconds < sorted[index - 1]!.endSeconds
-    ));
+    && new Set(lines.map((line) => line.startSeconds)).size === lines.length;
 }
 
 export function createLyricEditHandler(deps: LyricEditDependencies) {

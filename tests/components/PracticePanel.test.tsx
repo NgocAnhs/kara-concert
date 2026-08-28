@@ -78,6 +78,22 @@ describe('PracticePanel', () => {
     ]);
   });
 
+  it('identifies the lyric lines that share a start timestamp while allowing their ranges to overlap', async () => {
+    const user = userEvent.setup();
+    render(<PracticePanel song={song} onBack={vi.fn()} canEdit onUpdateTimestamps={async () => undefined} />);
+
+    await user.click(screen.getByRole('button', { name: 'Chỉnh sửa timestamp' }));
+    const lineTwoEditor = screen.getByRole('region', { name: 'Chỉnh timestamp câu 02' });
+    expect(within(lineTwoEditor).getByText('Start')).toBeInTheDocument();
+    expect(within(lineTwoEditor).getByText('End')).toBeInTheDocument();
+    expect(within(lineTwoEditor).getByRole('button', { name: 'Giảm start câu 02 bớt 1 giây' })).toBeInTheDocument();
+    expect(within(lineTwoEditor).getByRole('button', { name: 'Tăng end câu 02 thêm 1 giây' })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Giảm start câu 02 bớt 1 giây' }));
+    await user.click(screen.getByRole('button', { name: 'Giảm start câu 02 bớt 1 giây' }));
+
+    expect(screen.getByRole('alert')).toHaveTextContent('Câu 01 và câu 02 cùng start 00:02.');
+  });
+
   it('keeps player controls usable and discards a draft when editing is closed', async () => {
     const user = userEvent.setup();
     render(<PracticePanel song={song} onBack={vi.fn()} canEdit onUpdateTimestamps={async () => undefined} />);
