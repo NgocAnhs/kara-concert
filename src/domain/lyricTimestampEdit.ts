@@ -1,8 +1,10 @@
 export type EditableTimestamp = { id: string; startSeconds: number; endSeconds: number };
 
-export function moveLyricTimestamp(lines: EditableTimestamp[], lineId: string, seconds: number): EditableTimestamp[] {
+export function nudgeLyricBoundary(
+  lines: EditableTimestamp[], lineId: string, boundary: 'start' | 'end', seconds: number,
+): EditableTimestamp[] {
   return lines.map((line) => line.id === lineId
-    ? { ...line, startSeconds: line.startSeconds + seconds, endSeconds: line.endSeconds + seconds }
+    ? { ...line, [boundary === 'start' ? 'startSeconds' : 'endSeconds']: (boundary === 'start' ? line.startSeconds : line.endSeconds) + seconds }
     : line);
 }
 
