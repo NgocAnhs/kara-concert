@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { moveLyricTimestamp, validateLyricTimestamps } from '../../src/domain/lyricTimestampEdit';
+import { nudgeLyricBoundary, validateLyricTimestamps } from '../../src/domain/lyricTimestampEdit';
 
 const lines = [
   { id: 'a', startSeconds: 1, endSeconds: 3 },
@@ -7,10 +7,14 @@ const lines = [
 ];
 
 describe('lyric timestamp editing', () => {
-  it('moves both boundaries of only the selected lyric line', () => {
-    expect(moveLyricTimestamp(lines, 'b', 1)).toEqual([
+  it('moves only the requested boundary of the selected lyric line', () => {
+    expect(nudgeLyricBoundary(lines, 'b', 'start', 1)).toEqual([
       { id: 'a', startSeconds: 1, endSeconds: 3 },
-      { id: 'b', startSeconds: 5, endSeconds: 7 },
+      { id: 'b', startSeconds: 5, endSeconds: 6 },
+    ]);
+    expect(nudgeLyricBoundary(lines, 'b', 'end', -1)).toEqual([
+      { id: 'a', startSeconds: 1, endSeconds: 3 },
+      { id: 'b', startSeconds: 4, endSeconds: 5 },
     ]);
   });
 

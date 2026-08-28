@@ -4,7 +4,7 @@ import { createPracticeRange, type PracticeRange } from '../domain/practiceRange
 import { Brand } from './Brand';
 import { LyricLineButton } from './LyricLineButton';
 import { YouTubePracticePlayer } from './YouTubePracticePlayer';
-import { moveLyricTimestamp, validateLyricTimestamps, type EditableTimestamp } from '../domain/lyricTimestampEdit';
+import { nudgeLyricBoundary, validateLyricTimestamps, type EditableTimestamp } from '../domain/lyricTimestampEdit';
 
 type PracticePanelProps = {
   song: Song;
@@ -75,9 +75,9 @@ export function PracticePanel({ song, onBack, canEdit = false, onUpdateTimestamp
 
   const timestampLines = lines.map(({ id, startSeconds, endSeconds }) => ({ id, startSeconds, endSeconds }));
   const timestampError = editing ? validateLyricTimestamps(timestampLines) : null;
-  const nudgeTimestamp = (lineId: string, seconds: number) => {
+  const nudgeTimestamp = (lineId: string, boundary: 'start' | 'end', seconds: number) => {
     setEditError(null);
-    const edited = moveLyricTimestamp(timestampLines, lineId, seconds);
+    const edited = nudgeLyricBoundary(timestampLines, lineId, boundary, seconds);
     setLines((current) => current.map((line) => edited.find((candidate) => candidate.id === line.id)
       ? { ...line, ...edited.find((candidate) => candidate.id === line.id)! } : line));
   };
@@ -144,7 +144,7 @@ export function PracticePanel({ song, onBack, canEdit = false, onUpdateTimestamp
             <p className="library-count" aria-live="polite">{selectedIds.length > 0 ? `${selectedIds.length} câu đã chọn` : `${lines.length} câu hát`}</p>
           </div>
           <div className="lyrics-actions">
-            <p className="lyrics-help">{editing ? 'Dùng −1s hoặc +1s để dịch cả điểm bắt đầu và kết thúc của một câu.' : 'Chạm các câu liền nhau để luyện một đoạn.'}</p>
+            <p className="lyrics-help">{editing ? 'Chỉnh riêng Start hoặc End của từng câu, mỗi lần 1 giây.' : 'Chạm các câu liền nhau để luyện một đoạn.'}</p>
             {canEdit && onUpdateTimestamps && <button className="secondary-button edit-toggle" type="button" onClick={() => {
               if (editing) setLines(savedLines);
               setEditing((value) => !value);
@@ -165,7 +165,8 @@ export function PracticePanel({ song, onBack, canEdit = false, onUpdateTimestamp
                 active={line.id === activeLineId}
                 editing={editing}
                 onSelect={() => toggleLine(line.id)}
-                onNudge={(seconds) => nudgeTimestamp(line.id, seconds)}
+                onStartNudge={(seconds) => nudgeTimestamp(line.id, 'start', seconds)}
+                onEndNudge={(seconds) => nudgeTimestamp(line.id, 'end', seconds)}
                 buttonRef={(element) => {
                   if (element) lyricCardRefs.current.set(line.id, element);
                   else lyricCardRefs.current.delete(line.id);

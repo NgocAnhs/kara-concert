@@ -6,12 +6,13 @@ type LyricLineButtonProps = {
   active: boolean;
   editing?: boolean;
   onSelect(): void;
-  onNudge?(seconds: number): void;
+  onStartNudge?(seconds: number): void;
+  onEndNudge?(seconds: number): void;
   buttonRef(element: HTMLButtonElement | null): void;
 };
 
-export function LyricLineButton({ line, selected, active, editing = false, onSelect, onNudge, buttonRef }: LyricLineButtonProps) {
-  const timestamp = `${Math.floor(line.startSeconds / 60)}:${Math.floor(line.startSeconds % 60).toString().padStart(2, '0')}`;
+export function LyricLineButton({ line, selected, active, editing = false, onSelect, onStartNudge, onEndNudge, buttonRef }: LyricLineButtonProps) {
+  const timestamp = `${formatTimestamp(line.startSeconds)} - ${formatTimestamp(line.endSeconds)}`;
   return <div className="lyric-card-wrap">
     <button
       type="button"
@@ -30,8 +31,14 @@ export function LyricLineButton({ line, selected, active, editing = false, onSel
       {line.meaning && <small className="lyric-meaning">{line.meaning}</small>}
     </button>
     {editing && <div className="lyric-timestamp-controls" aria-label={`Chỉnh timestamp câu ${String(line.displayOrder + 1).padStart(2, '0')}`}>
-      <button type="button" className="timestamp-button" onClick={() => onNudge?.(-1)} aria-label={`Giảm timestamp câu ${String(line.displayOrder + 1).padStart(2, '0')} bớt 1 giây`}>−1s</button>
-      <button type="button" className="timestamp-button" onClick={() => onNudge?.(1)} aria-label={`Tăng timestamp câu ${String(line.displayOrder + 1).padStart(2, '0')} thêm 1 giây`}>+1s</button>
+      <button type="button" className="timestamp-button" onClick={() => onStartNudge?.(-1)} aria-label={`Giảm start câu ${String(line.displayOrder + 1).padStart(2, '0')} bớt 1 giây`}>Start −1s</button>
+      <button type="button" className="timestamp-button" onClick={() => onStartNudge?.(1)} aria-label={`Tăng start câu ${String(line.displayOrder + 1).padStart(2, '0')} thêm 1 giây`}>Start +1s</button>
+      <button type="button" className="timestamp-button" onClick={() => onEndNudge?.(-1)} aria-label={`Giảm end câu ${String(line.displayOrder + 1).padStart(2, '0')} bớt 1 giây`}>End −1s</button>
+      <button type="button" className="timestamp-button" onClick={() => onEndNudge?.(1)} aria-label={`Tăng end câu ${String(line.displayOrder + 1).padStart(2, '0')} thêm 1 giây`}>End +1s</button>
     </div>}
   </div>;
+}
+
+function formatTimestamp(seconds: number): string {
+  return `${Math.floor(seconds / 60).toString().padStart(2, '0')}:${Math.floor(seconds % 60).toString().padStart(2, '0')}`;
 }

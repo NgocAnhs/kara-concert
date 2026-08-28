@@ -58,15 +58,18 @@ describe('PracticePanel', () => {
     expect(screen.getByText(/AI tạo — lời và mốc thời gian có thể chưa chính xác/i)).toBeInTheDocument();
   });
 
-  it('lets an authorized editor shift both timestamps and save the draft', async () => {
+  it('shows a lyric start-end timestamp and lets an authorized editor change each boundary independently', async () => {
     const user = userEvent.setup();
     const onUpdateTimestamps = vi.fn(async () => undefined);
     render(<PracticePanel song={song} onBack={vi.fn()} canEdit onUpdateTimestamps={onUpdateTimestamps} />);
 
     await user.click(screen.getByRole('button', { name: 'Chỉnh sửa timestamp' }));
-    await user.click(screen.getByRole('button', { name: 'Tăng timestamp câu 03 thêm 1 giây' }));
+    expect(screen.getByText('00:06 - 00:08')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Tăng start câu 03 thêm 1 giây' }));
+    expect(screen.getByText('00:07 - 00:08')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Tăng end câu 03 thêm 1 giây' }));
 
-    expect(screen.getByRole('button', { name: /0:07/i })).toBeInTheDocument();
+    expect(screen.getByText('00:07 - 00:09')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Cập nhật chỉnh sửa' }));
     expect(onUpdateTimestamps).toHaveBeenCalledWith([
       { id: 'a', startSeconds: 2, endSeconds: 4 },
@@ -84,17 +87,17 @@ describe('PracticePanel', () => {
     await user.click(screen.getByRole('button', { name: /Chọt chul/i }));
     await user.click(screen.getByRole('button', { name: 'Lặp đoạn' }));
     expect(playerProps.last).toMatchObject({ playbackRate: 0.75, looping: true });
-    await user.click(screen.getByRole('button', { name: 'Tăng timestamp câu 03 thêm 1 giây' }));
+    await user.click(screen.getByRole('button', { name: 'Tăng start câu 03 thêm 1 giây' }));
     await user.click(screen.getByRole('button', { name: 'Thoát chỉnh sửa' }));
     await user.click(screen.getByRole('button', { name: 'Chỉnh sửa timestamp' }));
-    expect(screen.getByRole('button', { name: /0:06/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /03.*00:06 - 00:08/i })).toBeInTheDocument();
   });
 
   it('creates a range from adjacent lyric selections', async () => {
     const user = userEvent.setup();
     render(<PracticePanel song={song} onBack={vi.fn()} />);
     await user.click(screen.getByRole('button', { name: /Chọt chul/i }));
-    await user.click(screen.getByRole('button', { name: /0:04/i }));
+    await user.click(screen.getByRole('button', { name: /02.*00:04 - 00:06/i }));
     expect(screen.getByText(/đã chọn: 0:02.*0:06/i)).toBeInTheDocument();
   });
 
@@ -102,7 +105,7 @@ describe('PracticePanel', () => {
     const user = userEvent.setup();
     render(<PracticePanel song={song} onBack={vi.fn()} />);
     await user.click(screen.getByRole('button', { name: /Chọt chul/i }));
-    await user.click(screen.getByRole('button', { name: /0:06/i }));
+    await user.click(screen.getByRole('button', { name: /03.*00:06 - 00:08/i }));
     expect(screen.getByRole('alert')).toHaveTextContent(/liền nhau/i);
   });
 
@@ -128,7 +131,7 @@ describe('PracticePanel', () => {
     });
 
     expect(scrollIntoView).toHaveBeenCalledWith({ behavior: 'smooth', block: 'center', inline: 'nearest' });
-    expect(scrollIntoView.mock.instances[0]).toBe(screen.getByRole('button', { name: /0:04/i }));
+    expect(scrollIntoView.mock.instances[0]).toBe(screen.getByRole('button', { name: /02.*00:04 - 00:06/i }));
   });
 
   it('distinguishes a selected line that is also playing', async () => {
@@ -193,7 +196,7 @@ describe('PracticePanel', () => {
     render(<PracticePanel song={song} onBack={vi.fn()} />);
     const list = screen.getByRole('group', { name: 'Các câu hát' });
     list.style.overflowY = 'auto';
-    const line = screen.getByRole('button', { name: /0:04/i });
+    const line = screen.getByRole('button', { name: /02.*00:04 - 00:06/i });
     Object.defineProperties(list, { clientHeight: { value: 400 }, scrollHeight: { value: 1000 }, offsetTop: { value: 0 } });
     Object.defineProperties(line, { offsetTop: { value: 500 }, clientHeight: { value: 100 } });
     const scrollTo = vi.fn();
@@ -211,7 +214,7 @@ describe('PracticePanel', () => {
     list.style.overflowY = 'auto';
     Object.defineProperties(list, { clientHeight: { value: 400 }, scrollHeight: { value: 400 } });
     act(() => (playerProps.last?.onCurrentTime as (seconds: number) => void)(5));
-    expect(screen.getByRole('button', { name: /0:04/i })).toHaveAttribute('aria-current', 'true');
+    expect(screen.getByRole('button', { name: /02.*00:04 - 00:06/i })).toHaveAttribute('aria-current', 'true');
     expect(scrollIntoView).not.toHaveBeenCalled();
   });
 });
