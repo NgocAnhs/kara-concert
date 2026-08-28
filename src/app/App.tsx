@@ -34,7 +34,7 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/" element={<LibraryPage songs={songs} error={error} />} />
-      <Route path="/import" element={<ImportPage onJob={(jobId) => navigate(`/imports/${encodeURIComponent(jobId)}`)} onCompleted={onCompleted} />} />
+      <Route path="/import" element={<ImportPage onJob={(jobId) => navigate(`/imports/${encodeURIComponent(jobId)}`, { replace: true })} onCompleted={onCompleted} />} />
       <Route path="/imports/:jobId" element={<ImportStatusRoute onCompleted={onCompleted} />} />
       <Route path="/practice/:songKey" element={<PracticePage songs={songs} error={error} reload={reload} />} />
       <Route path="*" element={<NotFoundPage />} />
