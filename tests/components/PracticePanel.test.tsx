@@ -38,7 +38,7 @@ describe('PracticePanel', () => {
     expect(screen.queryByText('첫 줄')).not.toBeInTheDocument();
     expect(screen.queryByText('둘째 줄')).not.toBeInTheDocument();
     expect(screen.queryByText('셋째 줄')).not.toBeInTheDocument();
-    expect(screen.queryByText(/đọc kiểu việt:/i)).not.toBeInTheDocument();
+    expect(screen.getByText('Cách đọc tiếng Việt')).toBeInTheDocument();
   });
 
   it('shows an English-only line as its original reading', () => {

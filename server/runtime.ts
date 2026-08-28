@@ -70,6 +70,7 @@ function runtimeImportDependencies(
     getVideoState: (...args) => repository().getVideoState(...args),
     advance: (...args) => repository().advance(...args),
     fail: (...args) => repository().fail(...args),
+    recordGeminiOutput: (...args) => repository().recordGeminiOutput(...args),
     complete: (...args) => repository().complete(...args),
     completeCached: (...args) => repository().completeCached(...args),
   };

@@ -41,6 +41,7 @@ function setup(overrides: Partial<ImportRunnerDependencies> = {}) {
     fail: vi.fn(async (_lease: Lease, code: string) => { order.push(`fail:${code}`); }),
     complete: vi.fn(async () => { order.push('complete'); return '30000000-0000-4000-8000-000000000003'; }),
     completeCached: vi.fn(async () => { order.push('completeCached'); return '30000000-0000-4000-8000-000000000003'; }),
+    recordGeminiOutput: vi.fn(async () => { order.push('recordGeminiOutput'); }),
   };
   const deps: ImportRunnerDependencies = {
     repository,
@@ -67,6 +68,26 @@ describe('import runner', () => {
     expect(order).toEqual(['metadata', 'advance:transcribing', 'transcribe', 'advance:enriching', 'enrich', 'complete']);
     expect(repository.complete).toHaveBeenCalledWith(lease, metadata, prepared);
     expect(repository.fail).not.toHaveBeenCalled();
+  });
+
+  it('binds raw Gemini output storage to the current lease and provider stage', async () => {
+    const rawTranscript = { status: 'completed', steps: [] };
+    const rawEnrichment = { status: 'completed', steps: [{ type: 'model_output' }] };
+    const { deps, repository } = setup({
+      transcribe: vi.fn(async (_url, options: { onRawResponse?: (value: unknown) => Promise<void> }) => {
+        await options.onRawResponse?.({ stage: 'transcription', httpStatus: 200, response: rawTranscript });
+        return transcript;
+      }),
+      enrich: vi.fn(async (_transcript, options: { onRawResponse?: (value: unknown) => Promise<void> }) => {
+        await options.onRawResponse?.({ stage: 'enrichment', httpStatus: 200, response: rawEnrichment });
+        return prepared;
+      }),
+    });
+
+    await runImport(lease, VIDEO_ID, deps);
+
+    expect(repository.recordGeminiOutput).toHaveBeenNthCalledWith(1, lease, 'transcription', 200, rawTranscript);
+    expect(repository.recordGeminiOutput).toHaveBeenNthCalledWith(2, lease, 'enrichment', 200, rawEnrichment);
   });
 
   it('uses the cached shortcut only after metadata revalidation against a safe baseline', async () => {

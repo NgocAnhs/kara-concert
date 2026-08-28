@@ -1,16 +1,15 @@
-import { validatePreparedSong } from './gemini.js';
+import { validatePreparedSong, type GeminiCallOptions, type GeminiRawResponse } from './gemini.js';
 import type { ImportRepository, VideoState } from './repository.js';
 import type { Lease, PreparedSong, Transcript, VideoMetadata } from './types.js';
 import { ProviderFailure, type ProviderFailureCode } from './youtube.js';
 
-type CallOptions = { signal: AbortSignal };
 const MAX_TIMER_DELAY_MS = 2_147_483_647;
 
 export type ImportRunnerDependencies = {
-  repository: Pick<ImportRepository, 'advance' | 'fail' | 'complete' | 'completeCached' | 'getVideoState'>;
-  fetchVideo: (videoId: string, options: CallOptions) => Promise<VideoMetadata>;
-  transcribe: (canonicalUrl: string, options: CallOptions) => Promise<Transcript>;
-  enrich: (transcript: Transcript, options: CallOptions) => Promise<PreparedSong>;
+  repository: Pick<ImportRepository, 'advance' | 'fail' | 'recordGeminiOutput' | 'complete' | 'completeCached' | 'getVideoState'>;
+  fetchVideo: (videoId: string, options: { signal: AbortSignal }) => Promise<VideoMetadata>;
+  transcribe: (canonicalUrl: string, options: GeminiCallOptions) => Promise<Transcript>;
+  enrich: (transcript: Transcript, options: GeminiCallOptions) => Promise<PreparedSong>;
   now?: () => number;
 };
 
@@ -88,13 +87,17 @@ export async function runImport(lease: Lease, videoId: string, deps: ImportRunne
     if (!await deps.repository.advance(lease, 'transcribing')) return;
     assertBudget(now, deadlineAt, controller.signal);
 
-    const transcript = await deps.transcribe(`https://www.youtube.com/watch?v=${videoId}`, { signal: controller.signal });
+    const capture = ({ stage, httpStatus, response }: GeminiRawResponse) =>
+      deps.repository.recordGeminiOutput(lease, stage, httpStatus, response);
+    const transcript = await deps.transcribe(`https://www.youtube.com/watch?v=${videoId}`, {
+      signal: controller.signal, onRawResponse: capture,
+    });
     assertBudget(now, deadlineAt, controller.signal);
 
     if (!await deps.repository.advance(lease, 'enriching')) return;
     assertBudget(now, deadlineAt, controller.signal);
 
-    const enriched = await deps.enrich(transcript, { signal: controller.signal });
+    const enriched = await deps.enrich(transcript, { signal: controller.signal, onRawResponse: capture });
     assertBudget(now, deadlineAt, controller.signal);
     const prepared = validatePreparedSong(enriched, metadata.durationSeconds);
     assertBudget(now, deadlineAt, controller.signal);

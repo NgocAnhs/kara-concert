@@ -155,6 +155,7 @@ h1[tabindex]:focus-visible { outline: 2px solid currentColor; outline-offset: 6p
 .active-label { display: inline-flex; gap: 5px; align-items: center; font-weight: 750; }
 .active-label i { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
 .lyric-viet-han { font-size: 15px; font-weight: 650; color: var(--accent); }
+.lyric-field-label { display: inline-block; margin-right: 8px; color: var(--muted); font-size: 10px; font-weight: 750; letter-spacing: .04em; text-transform: uppercase; }
 .lyric-romanization { font-size: 13px; color: var(--muted); }
 .lyric-meaning { font-size: 14px; color: var(--muted); }
 @media (min-width: 1024px) {
