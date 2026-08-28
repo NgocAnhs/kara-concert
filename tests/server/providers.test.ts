@@ -135,7 +135,36 @@ describe('Gemini provider', () => {
       .rejects.toMatchObject({ code: 'PROVIDER_TRANSIENT' });
   });
 
-  it('copies English unchanged and limits structured output to text-only enrichment', async () => {
+  it('requests a strict JSON schema for transcription output', async () => {
+    let request: Request | undefined;
+    const provider = createGeminiProvider({
+      apiKey: 'test-key', model: 'gemini-test',
+      fetch: async (input, init) => {
+        request = new Request(input, init);
+        return jsonResponse(validResponse({ title: 'Song', lines: [{ text: 'a', start: 0, end: 1 }] }));
+      },
+    });
+
+    await provider.transcribe(canonicalUrl, { signal: new AbortController().signal, durationSeconds: 480 });
+
+    const body = await request?.json() as { response_format: { type: string; mime_type: string; schema: Record<string, unknown> } };
+    expect(body.response_format).toMatchObject({
+      type: 'text', mime_type: 'application/json',
+      schema: {
+        type: 'object', additionalProperties: false, required: ['title', 'lines'],
+        properties: {
+          title: { type: 'string' },
+          lines: {
+            type: 'array', items: {
+              type: 'object', additionalProperties: false, required: ['text', 'start', 'end'],
+            },
+          },
+        },
+      },
+    });
+  });
+
+  it('copies English unchanged and uses structured output for both AI stages', async () => {
     const requests: Request[] = [];
     const fetcher: typeof fetch = async (input, init) => {
       requests.push(new Request(input, init));
@@ -152,8 +181,12 @@ describe('Gemini provider', () => {
     expect(requests[0]?.url).toBe('https://generativelanguage.googleapis.com/v1beta/interactions');
     expect(requests[0]?.headers.get('x-goog-api-key')).toBe('test-key');
     const transcriptionRequest = await requests[0]?.json() as Record<string, unknown>;
-    expect(Object.keys(transcriptionRequest).sort()).toEqual(['input', 'model']);
-    expect(transcriptionRequest).toMatchObject({ model: 'gemini-test' });
+    expect(Object.keys(transcriptionRequest).sort()).toEqual(['generation_config', 'input', 'model', 'response_format', 'store']);
+    expect(transcriptionRequest).toMatchObject({
+      model: 'gemini-test', store: false,
+      response_format: { type: 'text', mime_type: 'application/json' },
+      generation_config: { max_output_tokens: 32768, thinking_level: 'minimal' },
+    });
     const enrichmentRequest = await requests[1]?.json() as {
       input: Array<{ type: string; text: string }>;
       response_format: unknown;
@@ -257,8 +290,7 @@ describe('Gemini provider', () => {
     const transcript = await provider.transcribe(canonicalUrl, { signal: new AbortController().signal, durationSeconds: 480 });
     await provider.enrich(transcript, { signal: new AbortController().signal });
 
-    expect(await requests[0]?.json()).not.toHaveProperty('response_format');
-    for (const request of requests.slice(1)) {
+    for (const request of requests) {
       const body = await request.json() as { response_format: { schema: unknown } };
       expect(objectKeysDeep(body.response_format.schema)).not.toEqual(
         expect.arrayContaining(['minLength', 'maxLength', 'pattern']),
