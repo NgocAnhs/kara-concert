@@ -285,6 +285,43 @@ describe('Gemini provider', () => {
       .rejects.toMatchObject({ code: 'PROVIDER_TRANSIENT' });
   });
 
+  it('concatenates text blocks from the final model output like the Google SDK', async () => {
+    const provider = createGeminiProvider({ apiKey: 'test-key', model: 'gemini-test', fetch: async () => jsonResponse({
+      status: 'completed',
+      steps: [
+        { type: 'model_output', content: [{ type: 'text', text: 'superseded output' }] },
+        { type: 'model_output', content: [
+          { type: 'text', text: '{"title":"Song",' },
+          { type: 'text', text: '"lines":[{"text":"a","start":0,"end":1}]}' },
+        ] },
+      ],
+    }) });
+
+    await expect(provider.transcribe(canonicalUrl, { signal: new AbortController().signal })).resolves.toEqual({
+      title: 'Song', lines: [{ text: 'a', start: 0, end: 1 }],
+    });
+  });
+
+  it('accepts one JSON code fence while rejecting any surrounding prose', async () => {
+    const payload = '{"title":"Song","lines":[{"text":"a","start":0,"end":1}]}';
+    const responses = [
+      `\`\`\`json\n${payload}\n\`\`\``,
+      `Here is the result:\n\`\`\`json\n${payload}\n\`\`\``,
+    ];
+    const provider = createGeminiProvider({
+      apiKey: 'test-key', model: 'gemini-test',
+      fetch: async () => jsonResponse({
+        status: 'completed', steps: [{ type: 'model_output', content: [{ type: 'text', text: responses.shift() }] }],
+      }),
+    });
+
+    await expect(provider.transcribe(canonicalUrl, { signal: new AbortController().signal })).resolves.toEqual({
+      title: 'Song', lines: [{ text: 'a', start: 0, end: 1 }],
+    });
+    await expect(provider.transcribe(canonicalUrl, { signal: new AbortController().signal }))
+      .rejects.toMatchObject({ code: 'PROVIDER_TRANSIENT' });
+  });
+
   it.each([
     { title: '   ', lines: [{ text: 'valid', start: 0, end: 1 }] },
     { title: 'Song', lines: [{ text: '\t\n', start: 0, end: 1 }] },
