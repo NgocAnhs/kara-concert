@@ -84,14 +84,25 @@ describe('PracticePanel', () => {
 
     await user.click(screen.getByRole('button', { name: 'Chỉnh sửa timestamp' }));
     const lineTwoEditor = screen.getByRole('region', { name: 'Chỉnh timestamp câu 02' });
-    expect(within(lineTwoEditor).getByText('Start')).toBeInTheDocument();
-    expect(within(lineTwoEditor).getByText('End')).toBeInTheDocument();
+    expect(within(lineTwoEditor).getByText('S')).toBeInTheDocument();
+    expect(within(lineTwoEditor).getByText('E')).toBeInTheDocument();
     expect(within(lineTwoEditor).getByRole('button', { name: 'Giảm start câu 02 bớt 1 giây' })).toBeInTheDocument();
     expect(within(lineTwoEditor).getByRole('button', { name: 'Tăng end câu 02 thêm 1 giây' })).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Giảm start câu 02 bớt 1 giây' }));
     await user.click(screen.getByRole('button', { name: 'Giảm start câu 02 bớt 1 giây' }));
 
     expect(screen.getByRole('alert')).toHaveTextContent('Câu 01 và câu 02 cùng start 00:02.');
+  });
+
+  it('explains when the editing session has expired instead of showing a generic save error', async () => {
+    const user = userEvent.setup();
+    const onUpdateTimestamps = async () => { throw Object.assign(new Error('ACCESS_REQUIRED'), { code: 'ACCESS_REQUIRED' }); };
+    render(<PracticePanel song={song} onBack={vi.fn()} canEdit onUpdateTimestamps={onUpdateTimestamps} />);
+
+    await user.click(screen.getByRole('button', { name: 'Chỉnh sửa timestamp' }));
+    await user.click(screen.getByRole('button', { name: 'Cập nhật chỉnh sửa' }));
+
+    expect(screen.getByRole('alert')).toHaveTextContent('Phiên chỉnh sửa đã hết hạn. Hãy mở lại quyền bằng token import rồi thử lại.');
   });
 
   it('keeps player controls usable and discards a draft when editing is closed', async () => {

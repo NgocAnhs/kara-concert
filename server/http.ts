@@ -2,6 +2,8 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import type { ServerConfig } from './config.js';
 import { SESSION_COOKIE, SESSION_TTL_SECONDS, sessionFromCookies, type ImportSession } from './access/session.js';
 
+const DEFAULT_MAX_JSON_BODY_BYTES = 4 * 1024;
+
 export class HttpError extends Error {
   constructor(public readonly status: number, public readonly code: string, public readonly clearSession = false) {
     super(code);
@@ -12,7 +14,7 @@ export function assertOrigin(req: VercelRequest, config: Pick<ServerConfig, 'app
   if (typeof req.headers.origin !== 'string' || req.headers.origin !== config.appOrigin) throw new HttpError(403, 'ORIGIN_REQUIRED');
 }
 
-export async function readJsonBody(req: VercelRequest): Promise<unknown> {
+export async function readJsonBody(req: VercelRequest, maxBytes = DEFAULT_MAX_JSON_BODY_BYTES): Promise<unknown> {
   const contentType = req.headers['content-type'];
   if (typeof contentType !== 'string' || !/^application\/json(?:\s*;\s*charset\s*=\s*(?:utf-8|"utf-8"))?\s*$/i.test(contentType)
     || (req.headers['content-encoding'] !== undefined && req.headers['content-encoding'] !== 'identity')) {
@@ -20,7 +22,7 @@ export async function readJsonBody(req: VercelRequest): Promise<unknown> {
   }
   const length = req.headers['content-length'];
   if (length !== undefined && (typeof length !== 'string' || !/^\d+$/.test(length))) throw new HttpError(400, 'INVALID_REQUEST');
-  if (length !== undefined && Number(length) > 4096) throw new HttpError(413, 'BODY_TOO_LARGE');
+  if (length !== undefined && Number(length) > maxBytes) throw new HttpError(413, 'BODY_TOO_LARGE');
 
   const bytes = await new Promise<Buffer>((resolve, reject) => {
     let size = 0;
@@ -34,7 +36,7 @@ export async function readJsonBody(req: VercelRequest): Promise<unknown> {
       if (settled) return;
       const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
       size += buffer.length;
-      if (size > 4096) { chunks.length = 0; fail(new HttpError(413, 'BODY_TOO_LARGE')); }
+      if (size > maxBytes) { chunks.length = 0; fail(new HttpError(413, 'BODY_TOO_LARGE')); }
       else chunks.push(buffer);
     });
     req.on('end', () => { if (!settled) { settled = true; resolve(Buffer.concat(chunks)); } });

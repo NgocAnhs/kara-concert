@@ -151,9 +151,9 @@ h1[tabindex]:focus-visible { outline: 2px solid currentColor; outline-offset: 6p
 .lyric-card-wrap { display: grid; gap: 8px; }
 .lyric-timestamp-controls { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; padding: 12px; border: 1px dashed var(--accent); border-radius: 12px; background: var(--accent-soft); }
 .lyric-timestamp-controls > p { grid-column: 1 / -1; margin: 0; color: var(--accent); font-size: 12px; font-weight: 750; }
-.timestamp-boundary { display: grid; grid-template-columns: auto 1fr 1fr; align-items: center; gap: 6px; }
+.timestamp-boundary { display: grid; min-width: 0; grid-template-columns: 16px minmax(0, 1fr) minmax(0, 1fr); align-items: center; gap: 5px; }
 .timestamp-boundary strong { font-size: 12px; color: var(--muted); }
-.timestamp-button { min-height: 44px; min-width: 62px; border: 1px solid var(--line); border-radius: 10px; background: var(--background); color: var(--ink); font-weight: 700; }
+.timestamp-button { min-width: 0; min-height: 40px; padding: 8px 4px; border: 1px solid var(--line); border-radius: 10px; background: var(--background); color: var(--ink); font-weight: 700; white-space: nowrap; }
 .timestamp-button:hover { border-color: var(--accent); color: var(--accent); }
 .lyrics-actions { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 16px; }
 .lyrics-actions .lyrics-help { margin: 0; }

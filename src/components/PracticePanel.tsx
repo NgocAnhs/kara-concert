@@ -21,6 +21,14 @@ function formatEditorTimestamp(seconds: number): string {
   return `${Math.floor(seconds / 60).toString().padStart(2, '0')}:${Math.floor(seconds % 60).toString().padStart(2, '0')}`;
 }
 
+function timestampSaveError(error: unknown): string {
+  const code = typeof error === 'object' && error !== null && 'code' in error && typeof error.code === 'string' ? error.code : undefined;
+  if (code === 'ACCESS_REQUIRED') return 'Phiên chỉnh sửa đã hết hạn. Hãy mở lại quyền bằng token import rồi thử lại.';
+  if (code === 'INVALID_LYRIC_TIMESTAMPS') return 'Timestamp không hợp lệ. Hãy kiểm tra các câu được báo lỗi.';
+  if (code === 'BODY_TOO_LARGE') return 'Bài hát có quá nhiều câu để lưu trong một lần. Hãy thử lại sau.';
+  return 'Không thể lưu chỉnh sửa. Hãy kiểm tra quyền truy cập và thử lại.';
+}
+
 export function PracticePanel({ song, onBack, canEdit = false, onUpdateTimestamps }: PracticePanelProps) {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [range, setRange] = useState<PracticeRange | null>(null);
@@ -99,8 +107,8 @@ export function PracticePanel({ song, onBack, canEdit = false, onUpdateTimestamp
       await onUpdateTimestamps(timestampLines.map(({ id, startSeconds, endSeconds }) => ({ id, startSeconds, endSeconds })));
       setSavedLines(lines);
       setEditing(false);
-    } catch {
-      setEditError('Không thể lưu chỉnh sửa. Hãy kiểm tra quyền truy cập và thử lại.');
+    } catch (error) {
+      setEditError(timestampSaveError(error));
     } finally { setSaving(false); }
   };
 
