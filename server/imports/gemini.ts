@@ -136,11 +136,15 @@ function validateTextOutput(body: unknown): unknown {
   const root = object(body);
   const steps = root?.status === 'completed' && Array.isArray(root.steps) ? root.steps : null;
   const modelOutputs = steps?.filter((step) => object(step)?.type === 'model_output') ?? [];
-  const output = modelOutputs.length === 1 ? object(modelOutputs[0]) : null;
+  const output = modelOutputs.length ? object(modelOutputs[modelOutputs.length - 1]) : null;
   const content = output && Array.isArray(output.content) ? output.content : null;
-  const part = content?.length === 1 ? object(content[0]) : null;
-  if (!part || part.type !== 'text' || typeof part.text !== 'string') transient();
-  try { return JSON.parse(part.text); } catch { return transient(); }
+  const text = content?.flatMap((value) => {
+    const part = object(value);
+    return part?.type === 'text' && typeof part.text === 'string' ? [part.text] : [];
+  }).join('');
+  if (!text) transient();
+  const fenced = /^\s*```json[ \t]*\r?\n([\s\S]*?)\r?\n```\s*$/i.exec(text);
+  try { return JSON.parse(fenced?.[1] ?? text); } catch { return transient(); }
 }
 
 function finiteReading(value: unknown): value is string {
