@@ -108,7 +108,7 @@ describe('Gemini provider', () => {
         : jsonResponse(validResponse({ replacements: [], meanings: [{ lineId: 0, meaning: 'Tôi đang về nhà' }] }));
     };
     const provider = createGeminiProvider({ apiKey: 'test-key', model: 'gemini-test', fetch: fetcher, now: () => 0, deadlineAt: 60_000 });
-    const transcript = await provider.transcribe(canonicalUrl, { signal: new AbortController().signal });
+    const transcript = await provider.transcribe(canonicalUrl, { signal: new AbortController().signal, durationSeconds: 480 });
     await expect(provider.enrich(transcript, { signal: new AbortController().signal })).resolves.toEqual({
       title: 'My Song', lines: [{ text: "I'm coming HOME", start: 0, end: 2, vietHan: "I'm coming HOME", romanization: "I'm coming HOME", meaning: 'Tôi đang về nhà' }],
     });
@@ -174,13 +174,36 @@ describe('Gemini provider', () => {
       },
     });
 
-    await provider.transcribe(canonicalUrl, { signal: new AbortController().signal });
+    await provider.transcribe(canonicalUrl, { signal: new AbortController().signal, durationSeconds: 480 });
 
     const body = await request?.json() as { input: Array<{ type: string; text?: string; uri?: string }> };
     expect(body.input[1]).toEqual({ type: 'video', uri: canonicalUrl });
     expect(body.input[0]?.text).toContain('Return only valid JSON');
     expect(body.input[0]?.text).toContain('"title"');
     expect(body.input[0]?.text).toContain('"lines"');
+  });
+
+  it('bounds transcription cues to the verified YouTube duration before enrichment', async () => {
+    const requests: Request[] = [];
+    const responses = [
+      validResponse({ title: 'Song', lines: [{ text: 'valid', start: 0, end: 252 }] }),
+      validResponse({ title: 'Song', lines: [{ text: 'too late', start: 252, end: 253 }] }),
+    ];
+    const provider = createGeminiProvider({
+      apiKey: 'test-key', model: 'gemini-test',
+      fetch: async (input, init) => {
+        requests.push(new Request(input, init));
+        return jsonResponse(responses.shift());
+      },
+    });
+    const options = { signal: new AbortController().signal, durationSeconds: 252 };
+
+    await expect(provider.transcribe(canonicalUrl, options)).resolves.toMatchObject({ title: 'Song' });
+    await expect(provider.transcribe(canonicalUrl, options)).rejects.toMatchObject({ code: 'PROVIDER_TRANSIENT' });
+
+    const request = await requests[0]?.json() as { input: Array<{ text?: string }> };
+    expect(request.input[0]?.text).toContain('exactly 252 seconds');
+    expect(request.input[0]?.text).toContain('must not exceed 252');
   });
 
   it('uses only Gemini-supported structured-output schema keywords', async () => {
@@ -195,7 +218,7 @@ describe('Gemini provider', () => {
       },
     });
 
-    const transcript = await provider.transcribe(canonicalUrl, { signal: new AbortController().signal });
+    const transcript = await provider.transcribe(canonicalUrl, { signal: new AbortController().signal, durationSeconds: 480 });
     await provider.enrich(transcript, { signal: new AbortController().signal });
 
     expect(await requests[0]?.json()).not.toHaveProperty('response_format');
@@ -211,7 +234,7 @@ describe('Gemini provider', () => {
     const provider = createGeminiProvider({ apiKey: 'test-key', model: 'gemini-test', fetch: async () => jsonResponse({
       status: 'incomplete', steps: [{ type: 'model_output', content: [{ type: 'text', text: '{"title":"partial"' }] }],
     }) });
-    await expect(provider.transcribe(canonicalUrl, { signal: new AbortController().signal })).rejects.toMatchObject({ code: 'PROVIDER_TRANSIENT' });
+    await expect(provider.transcribe(canonicalUrl, { signal: new AbortController().signal, durationSeconds: 480 })).rejects.toMatchObject({ code: 'PROVIDER_TRANSIENT' });
   });
 
   it('emits only actual response telemetry without exposing response content', async () => {
@@ -226,7 +249,7 @@ describe('Gemini provider', () => {
       onResponseTelemetry: (value) => telemetry.push(value),
     });
 
-    await provider.transcribe(canonicalUrl, { signal: new AbortController().signal });
+    await provider.transcribe(canonicalUrl, { signal: new AbortController().signal, durationSeconds: 480 });
 
     expect(telemetry).toEqual([{
       promptTokens: 11, outputTokens: 7, totalTokens: 18, finishReasons: ['completed'],
@@ -244,7 +267,7 @@ describe('Gemini provider', () => {
       }, 429),
       onResponseTelemetry: (value) => telemetry.push(value),
     });
-    await expect(provider.transcribe(canonicalUrl, { signal: new AbortController().signal }))
+    await expect(provider.transcribe(canonicalUrl, { signal: new AbortController().signal, durationSeconds: 480 }))
       .rejects.toMatchObject({ code: 'PROVIDER_QUOTA' });
     expect(telemetry).toEqual([{
       promptTokens: 3, outputTokens: 0, totalTokens: 3, finishReasons: [],
@@ -270,7 +293,7 @@ describe('Gemini provider', () => {
       onDiagnostic: (value) => diagnostics.push(value),
     });
 
-    await expect(provider.transcribe(canonicalUrl, { signal: new AbortController().signal }))
+    await expect(provider.transcribe(canonicalUrl, { signal: new AbortController().signal, durationSeconds: 480 }))
       .rejects.toMatchObject({ code: 'PROVIDER_TRANSIENT' });
     expect(diagnostics).toEqual([{
       event: 'HTTP_ERROR', httpStatus: 404, providerStatus: 'INVALID_ARGUMENT',
@@ -289,7 +312,7 @@ describe('Gemini provider', () => {
       onDiagnostic: (value) => diagnostics.push(value),
     });
 
-    await expect(provider.transcribe(canonicalUrl, { signal: new AbortController().signal }))
+    await expect(provider.transcribe(canonicalUrl, { signal: new AbortController().signal, durationSeconds: 480 }))
       .rejects.toMatchObject({ code: 'PROVIDER_TRANSIENT' });
     expect(diagnostics).toEqual([{ event: 'INVALID_RESPONSE', finishReasons: ['incomplete'] }]);
     expect(JSON.stringify(diagnostics)).not.toContain('secret partial text');
@@ -301,7 +324,7 @@ describe('Gemini provider', () => {
       calls += 1;
       return jsonResponse(validResponse({ title: 'Song', lines: [{ text: 'a', start: 0, end: 1 }] }));
     } });
-    await expect(provider.transcribe('https://example.test/private-video', { signal: new AbortController().signal }))
+    await expect(provider.transcribe('https://example.test/private-video', { signal: new AbortController().signal, durationSeconds: 480 }))
       .rejects.toMatchObject({ code: 'PROVIDER_TRANSIENT' });
     expect(calls).toBe(0);
   });
@@ -310,7 +333,7 @@ describe('Gemini provider', () => {
     const provider = createGeminiProvider({ apiKey: 'test-key', model: 'gemini-test', fetch: async () => jsonResponse({
       ...validResponse({ title: 'Song', lines: [{ text: 'a', start: 0, end: 1 }] }), status: 'failed',
     }) });
-    await expect(provider.transcribe(canonicalUrl, { signal: new AbortController().signal }))
+    await expect(provider.transcribe(canonicalUrl, { signal: new AbortController().signal, durationSeconds: 480 }))
       .rejects.toMatchObject({ code: 'PROVIDER_TRANSIENT' });
   });
 
@@ -326,7 +349,7 @@ describe('Gemini provider', () => {
       ],
     }) });
 
-    await expect(provider.transcribe(canonicalUrl, { signal: new AbortController().signal })).resolves.toEqual({
+    await expect(provider.transcribe(canonicalUrl, { signal: new AbortController().signal, durationSeconds: 480 })).resolves.toEqual({
       title: 'Song', lines: [{ text: 'a', start: 0, end: 1 }],
     });
   });
@@ -344,10 +367,10 @@ describe('Gemini provider', () => {
       }),
     });
 
-    await expect(provider.transcribe(canonicalUrl, { signal: new AbortController().signal })).resolves.toEqual({
+    await expect(provider.transcribe(canonicalUrl, { signal: new AbortController().signal, durationSeconds: 480 })).resolves.toEqual({
       title: 'Song', lines: [{ text: 'a', start: 0, end: 1 }],
     });
-    await expect(provider.transcribe(canonicalUrl, { signal: new AbortController().signal }))
+    await expect(provider.transcribe(canonicalUrl, { signal: new AbortController().signal, durationSeconds: 480 }))
       .rejects.toMatchObject({ code: 'PROVIDER_TRANSIENT' });
   });
 
@@ -360,7 +383,7 @@ describe('Gemini provider', () => {
       fetch: async () => jsonResponse(validResponse(payload)),
     });
 
-    await expect(provider.transcribe(canonicalUrl, { signal: new AbortController().signal }))
+    await expect(provider.transcribe(canonicalUrl, { signal: new AbortController().signal, durationSeconds: 480 }))
       .rejects.toMatchObject({ code: 'PROVIDER_TRANSIENT' });
   });
 

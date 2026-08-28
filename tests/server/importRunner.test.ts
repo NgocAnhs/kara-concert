@@ -67,6 +67,10 @@ describe('import runner', () => {
 
     expect(order).toEqual(['metadata', 'advance:transcribing', 'transcribe', 'advance:enriching', 'enrich', 'complete']);
     expect(repository.complete).toHaveBeenCalledWith(lease, metadata, prepared);
+    expect(deps.transcribe).toHaveBeenCalledWith(
+      `https://www.youtube.com/watch?v=${VIDEO_ID}`,
+      expect.objectContaining({ durationSeconds: metadata.durationSeconds }),
+    );
     expect(repository.fail).not.toHaveBeenCalled();
   });
 

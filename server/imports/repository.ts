@@ -3,7 +3,7 @@ import type { PublicJob, JobStatus } from '../../shared/import.js';
 import type { Lease, PreparedSong, VideoMetadata } from './types.js';
 import type { GeminiStage } from './gemini.js';
 
-export const IMPORT_PROMPT_VERSION = 'youtube-auto-import-v2';
+export const IMPORT_PROMPT_VERSION = 'youtube-auto-import-v3';
 
 export type Admission =
   | { kind: 'cached'; songId: string }
